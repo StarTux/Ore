@@ -1,0 +1,14 @@
+name: Ore
+description: Custom, dynamic ore generation
+author: StarTux
+version: 0.1
+main: com.winthier.ore.OrePlugin
+depend: [ Exploits ]
+commands:
+  ore:
+    description: Admin interface
+    permission: ore.ore
+permissions:
+  ore.ore:
+    description: Use the admin command
+    default: op
