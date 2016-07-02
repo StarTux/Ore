@@ -151,6 +151,10 @@ class WorldGenerator {
                             chunk.set(dx, dy, dz, OreType.DIAMOND_ORE);
                         } else if (dia > 0.69) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.GRANITE);
+                        } else if (dia > 0.64) {
+                            if (noiseDiamondOre.at(x, y, z, 1.0) > 0.0) {
+                                chunk.setIfEmpty(dx, dy, dz, OreType.STONE_MONSTER_EGG);
+                            }
                         }
                     }
                     // Debug

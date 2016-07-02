@@ -16,6 +16,7 @@ public enum OreType {
     GRANITE(Material.STONE, 1),
     DIORITE(Material.STONE, 3),
     ANDESITE(Material.STONE, 5),
+    STONE_MONSTER_EGG(Material.MONSTER_EGGS, 0),
     DEBUG,
     ;
 
