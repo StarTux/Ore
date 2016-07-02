@@ -21,6 +21,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.material.MaterialData;
 import org.bukkit.scheduler.BukkitRunnable;
 
 @RequiredArgsConstructor
@@ -28,8 +29,6 @@ class WorldGenerator {
     final String worldName;
 
     final OpenSimplexNoise noiseDiamondOre;
-    final OpenSimplexNoise noiseDiamondCeil;
-
     final OpenSimplexNoise noiseCoalOre;
     final OpenSimplexNoise noiseIronOre;
     final OpenSimplexNoise noiseGoldOre;
@@ -37,6 +36,7 @@ class WorldGenerator {
     final OpenSimplexNoise noiseLapisOre;
 
     private boolean shouldStop = false;
+    boolean generateHotspots = true;
 
     // Async
     final LinkedBlockingQueue<OreChunk> queue = new LinkedBlockingQueue<OreChunk>();
@@ -56,8 +56,6 @@ class WorldGenerator {
         
         Random random = new Random(Bukkit.getServer().getWorld(worldName).getSeed());
         noiseDiamondOre = new OpenSimplexNoise(random.nextLong());
-        noiseDiamondCeil = new OpenSimplexNoise(random.nextLong());
-
         noiseCoalOre = new OpenSimplexNoise(random.nextLong());
         noiseIronOre = new OpenSimplexNoise(random.nextLong());
         noiseGoldOre = new OpenSimplexNoise(random.nextLong());
@@ -69,12 +67,33 @@ class WorldGenerator {
         return Bukkit.getServer().getWorld(worldName);
     }
 
+    int getDiamondLevel(int chunkX, int chunkZ) {
+        double diamondVal = noiseDiamondOre.at(chunkX, 0, chunkZ, 5.0);
+        if (diamondVal > 0.5) {
+            return 128;
+        } else if (diamondVal > 0.4) {
+            return 64;
+        } else if (diamondVal > 0.0) {
+            return 32;
+        } else {
+            return 0;
+        }
+    }
+
     void generate(OreChunk chunk) {
         int cx = chunk.getBlockX();
         int cy = chunk.getBlockY();
         int cz = chunk.getBlockZ();
 
-        // int diamondCeil = noiseDiamondCeil.abs(chunk.getX(), chunk.getZ(), 0, 4.0) > 0.65 ? 96 : 16;
+        int diamondLevel = 16;
+        int lapisLevel = 32;
+        int redstoneLevel = 16;
+        int ironLevel = 64;
+        int goldLevel = 32;
+
+        if (generateHotspots) {
+            diamondLevel = getDiamondLevel(chunk.getX(), chunk.getZ());
+        }
 
         for (int dy = 0; dy < OreChunk.SIZE; ++dy) {
             for (int dz = 0; dz < OreChunk.SIZE; ++dz) {
@@ -85,39 +104,64 @@ class WorldGenerator {
                     if (y <= 0) continue;
                     // Coal
                     if (y <= 128) {
-                        if (noiseCoalOre.abs(x, y, z, 6.0) > 0.66) {
+                        if (noiseCoalOre.abs(x, y, z, 5.0) > 0.66) {
                             chunk.set(dx, dy, dz, OreType.COAL_ORE);
                         }
                     }
                     // Iron
-                    if (y <= 64) {
-                        if (noiseIronOre.abs(x, y, z, 4.0) > 0.71) {
+                    if (y <= ironLevel) {
+                        double iro = noiseIronOre.abs(x, y, z, 5.0);
+                        if (iro  > 0.71) {
                             chunk.set(dx, dy, dz, OreType.IRON_ORE);
+                        } else if (iro > 0.61) {
+                            chunk.setIfEmpty(dx, dy, dz, OreType.ANDESITE);
                         }
                     }
                     // Gold
-                    if (y <= 32) {
-                        if (noiseGoldOre.abs(x, y, z, 4.0) > 0.78) {
+                    if (y <= goldLevel) {
+                        double gol = noiseGoldOre.abs(x, y, z, 5.0);
+                        if (gol > 0.78) {
                             chunk.set(dx, dy, dz, OreType.GOLD_ORE);
+                        } else if (gol > 0.68) {
+                            chunk.setIfEmpty(dx, dy, dz, OreType.DIORITE);
                         }
                     }
                     // Redstone
-                    if (y <= 16) {
-                        if (noiseRedstoneOre.abs(x, y, z, 4.0) > 0.72) {
+                    if (y <= redstoneLevel) {
+                        double red = noiseRedstoneOre.abs(x, y, z, 5.0);
+                        if (red > 0.72) {
                             chunk.set(dx, dy, dz, OreType.REDSTONE_ORE);
+                        } else if (red > 0.62) {
+                            chunk.setIfEmpty(dx, dy, dz, OreType.GRANITE);
                         }
                     }
                     // Lapis
-                    if (y <= 32) {
-                        if (noiseLapisOre.abs(x, y, z, 4.0) > 0.81) {
+                    if (y <= lapisLevel) {
+                        double lap = noiseLapisOre.abs(x, y, z, 5.0);
+                        if (lap > 0.81) {
                             chunk.set(dx, dy, dz, OreType.LAPIS_ORE);
+                        } else if (lap > 0.71) {
+                            chunk.setIfEmpty(dx, dy, dz, OreType.DIORITE);
                         }
                     }
                     // Diamond
-                    if (y <= 16) {
-                        if (noiseDiamondOre.abs(x, y, z, 4.0) > 0.8) {
+                    if (y <= diamondLevel) {
+                        double dia = noiseDiamondOre.abs(x, y, z, 5.0);
+                        if (dia > 0.79) {
                             chunk.set(dx, dy, dz, OreType.DIAMOND_ORE);
+                        } else if (dia > 0.69) {
+                            chunk.setIfEmpty(dx, dy, dz, OreType.GRANITE);
                         }
+                    }
+                    // Debug
+                    if (diamondLevel == 128 && y == 104) {
+                        chunk.set(dx, dy, dz, OreType.DEBUG);
+                    }
+                    if (diamondLevel == 64 && y == 102) {
+                        chunk.set(dx, dy, dz, OreType.DEBUG);
+                    }
+                    if (diamondLevel == 32 && y == 100) {
+                        chunk.set(dx, dy, dz, OreType.DEBUG);
                     }
                 }
             }
@@ -247,13 +291,13 @@ class WorldGenerator {
             for (int z = 0; z < OreChunk.SIZE; ++z) {
                 for (int x = 0; x < OreChunk.SIZE; ++x) {
                     OreType ore = chunk.get(x, y, z);
-                    Material mat = ore.getMaterial();
+                    MaterialData mat = ore.getMaterialData();
                     if (mat != null) {
                         Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
                         if (block.getType() == Material.STONE &&
                             !BukkitExploits.getInstance().isPlayerPlaced(block) &&
                             isExposedToAir(block)) {
-                            player.sendBlockChange(block.getLocation(), mat, (byte)0);
+                            player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
                         }
                     }
                 }
@@ -279,11 +323,11 @@ class WorldGenerator {
         OreChunk chunk = getOrGenerate(coord);
         if (chunk == null) return;
         OreType ore = chunk.at(block);
-        Material mat = ore.getMaterial();
+        MaterialData mat = ore.getMaterialData();
         if (mat == null) return;
         if (block.getType() == Material.STONE &&
             !BukkitExploits.getInstance().isPlayerPlaced(block)) {
-            block.setType(mat);
+            block.setTypeIdAndData(mat.getItemTypeId(), mat.getData(), false);
         }
     }
 
@@ -292,13 +336,13 @@ class WorldGenerator {
         OreChunk chunk = getOrGenerate(coord);
         if (chunk == null) return;
         OreType ore = chunk.at(block);
-        Material mat = ore.getMaterial();
+        MaterialData mat = ore.getMaterialData();
         if (mat == null) return;
         if (block.getType() == Material.STONE &&
             !BukkitExploits.getInstance().isPlayerPlaced(block)) {
             for (Player player: block.getWorld().getPlayers()) {
                 if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= 4) {
-                    player.sendBlockChange(block.getLocation(), mat, (byte)0);
+                    player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
                 }
             }
         }
