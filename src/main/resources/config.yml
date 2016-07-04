@@ -1,0 +1,7 @@
+worlds:
+  Winthier:
+    Enabled: true
+    GenerateHotspots: true
+  Resource:
+    Enabled: true
+    GenerateHotspots: false

@@ -14,11 +14,13 @@ import org.bukkit.material.MaterialData;
 public class OreCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        Player player = (Player)sender;
-        if (player == null) return false;
+        Player player = sender instanceof Player ? (Player)sender : null;
         if (args.length == 0) return false;
         String firstArg = args[0].toLowerCase();
-        if (firstArg.equals("test")) {
+        if (firstArg.equals("reload")) {
+            OrePlugin.getInstance().loadWorlds();
+            sender.sendMessage("Config reloaded");
+        } else if (firstArg.equals("test")) {
             double featureSize = 16.0;
             if (args.length >= 2) featureSize = Double.parseDouble(args[1]);
             double exponent = 1.0;

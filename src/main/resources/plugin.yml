@@ -4,6 +4,7 @@ author: StarTux
 version: 0.1
 main: com.winthier.ore.OrePlugin
 depend: [ Exploits ]
+softdepend: [ Multiverse-Core ]
 commands:
   ore:
     description: Admin interface
