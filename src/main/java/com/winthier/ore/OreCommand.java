@@ -59,6 +59,10 @@ public class OreCommand implements CommandExecutor {
             double percentage = (double)oreCount / (double)totalCount * 100.0;
             player.sendMessage(String.format("Placed %d/%d blocks (%.02f%%)", oreCount, totalCount, percentage));
         } else if (firstArg.equals("gen")) {
+            boolean anywhere = false;
+            if (args.length >= 2 && args[1].equals("any")) {
+                anywhere = true;
+            }
             OreChunk ch = OreChunk.of(player.getLocation().getBlock());
             final int R = 2;
             WorldGenerator worldgen = OrePlugin.getInstance().generators.get(player.getWorld().getName());
@@ -83,7 +87,7 @@ public class OreCommand implements CommandExecutor {
                                     if (ore == OreType.DEBUG) {
                                         player.sendBlockChange(loc, Material.STAINED_GLASS, (byte)9);
                                     }
-                                    if (ore != OreType.NONE && block.getType() == Material.STONE) {
+                                    if (ore != OreType.NONE && (anywhere || block.getType() == Material.STONE)) {
                                         Integer c = oreCount.get(ore);
                                         if (c == null) c = 0;
                                         oreCount.put(ore, c + 1);
@@ -106,10 +110,17 @@ public class OreCommand implements CommandExecutor {
                 double percentage = (double)c / (double)totalCount * 100.0;
                 player.sendMessage(String.format("%d (%.03f%%) %s", c, percentage, ore.name()));
             }
-        } else if (firstArg.equals("lvl")) {
+        } else if (firstArg.equals("lvl") && args.length == 2) {
+            WorldGenerator.Noise noise;
+            try {
+                noise = WorldGenerator.Noise.valueOf(args[1].toUpperCase());
+            } catch (IllegalArgumentException iae) {
+                sender.sendMessage("Invalid Noise: " + args[1]);
+                return true;
+            }
             ChunkCoordinate coord = ChunkCoordinate.of(player.getLocation());
-            int diamondLevel = OrePlugin.getInstance().generators.get(player.getWorld().getName()).getDiamondLevel(coord.getX(), coord.getZ());
-            player.sendMessage("Diamond level = " + diamondLevel);
+            int level = OrePlugin.getInstance().generators.get(player.getWorld().getName()).getOreLevel(noise, coord.getX(), coord.getZ());
+            player.sendMessage("Level of " + noise + " = " + level);
         }
         return true;
     }

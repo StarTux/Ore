@@ -2,6 +2,7 @@ package com.winthier.ore;
 
 import com.winthier.exploits.bukkit.BukkitExploits;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -14,7 +15,6 @@ import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -24,16 +24,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
 import org.bukkit.scheduler.BukkitRunnable;
 
-@RequiredArgsConstructor
 class WorldGenerator {
     final String worldName;
 
-    final OpenSimplexNoise noiseDiamondOre;
-    final OpenSimplexNoise noiseCoalOre;
-    final OpenSimplexNoise noiseIronOre;
-    final OpenSimplexNoise noiseGoldOre;
-    final OpenSimplexNoise noiseRedstoneOre;
-    final OpenSimplexNoise noiseLapisOre;
+    static public enum Noise {
+        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY;
+    }
+
+    final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
 
     private boolean shouldStop = false;
     boolean generateHotspots = true;
@@ -55,26 +53,36 @@ class WorldGenerator {
         this.worldName = worldName;
         
         Random random = new Random(Bukkit.getServer().getWorld(worldName).getSeed());
-        noiseDiamondOre = new OpenSimplexNoise(random.nextLong());
-        noiseCoalOre = new OpenSimplexNoise(random.nextLong());
-        noiseIronOre = new OpenSimplexNoise(random.nextLong());
-        noiseGoldOre = new OpenSimplexNoise(random.nextLong());
-        noiseRedstoneOre = new OpenSimplexNoise(random.nextLong());
-        noiseLapisOre = new OpenSimplexNoise(random.nextLong());
+        for (Noise noise: Noise.values()) {
+            noises.put(noise, new OpenSimplexNoise(random.nextLong()));
+        }
     }
 
     World getWorld() {
         return Bukkit.getServer().getWorld(worldName);
     }
 
-    int getDiamondLevel(int chunkX, int chunkZ) {
-        double diamondVal = noiseDiamondOre.at(chunkX, 0, chunkZ, 5.0);
-        if (diamondVal > 0.5) {
-            return 128;
-        } else if (diamondVal > 0.4) {
-            return 64;
-        } else if (diamondVal > 0.0) {
-            return 32;
+    private int getHotspotBaseHeight(Noise noise) {
+        switch (noise) {
+        case DIAMOND: return 32;
+        case LAPIS: return 32;
+        case IRON: return 64;
+        case COAL: return 64;
+        case GOLD: return 32;
+        case REDSTONE: return 32;
+        default: return 16;
+        }
+    }
+
+    int getOreLevel(Noise noise, int chunkX, int chunkZ) {
+        int base = getHotspotBaseHeight(noise);
+        double val = noises.get(noise).at(chunkX, 0, chunkZ, 5.0);
+        if (val > 0.5) {
+            return base*4;
+        } else if (val > 0.4) {
+            return base*2;
+        } else if (val > 0.0) {
+            return base;
         } else {
             return 0;
         }
@@ -92,7 +100,13 @@ class WorldGenerator {
         int goldLevel = 32;
 
         if (generateHotspots) {
-            diamondLevel = getDiamondLevel(chunk.getX(), chunk.getZ());
+            int x = chunk.getX();
+            int y = chunk.getZ();
+            diamondLevel = getOreLevel(Noise.DIAMOND, x, y);
+            lapisLevel = getOreLevel(Noise.LAPIS, x, y);
+            redstoneLevel = getOreLevel(Noise.REDSTONE, x, y);
+            ironLevel = getOreLevel(Noise.IRON, x, y);
+            goldLevel = getOreLevel(Noise.GOLD, x, y);
         }
 
         for (int dy = 0; dy < OreChunk.SIZE; ++dy) {
@@ -102,15 +116,21 @@ class WorldGenerator {
                     int y = cy + dy;
                     int z = cz + dz;
                     if (y <= 0) continue;
+                    // Clay
+                    if (y <= 64 && y > 32) {
+                        if (noises.get(Noise.CLAY).abs(x, y, z, 8.0) > 0.65) {
+                            chunk.set(dx, dy, dz, OreType.CLAY);
+                        }
+                    }
                     // Coal
                     if (y <= 128) {
-                        if (noiseCoalOre.abs(x, y, z, 5.0) > 0.66) {
+                        if (noises.get(Noise.COAL).abs(x, y, z, 5.0) > 0.66) {
                             chunk.set(dx, dy, dz, OreType.COAL_ORE);
                         }
                     }
                     // Iron
                     if (y <= ironLevel) {
-                        double iro = noiseIronOre.abs(x, y, z, 5.0);
+                        double iro = noises.get(Noise.IRON).abs(x, y, z, 5.0);
                         if (iro  > 0.71) {
                             chunk.set(dx, dy, dz, OreType.IRON_ORE);
                         } else if (iro > 0.61) {
@@ -119,7 +139,7 @@ class WorldGenerator {
                     }
                     // Gold
                     if (y <= goldLevel) {
-                        double gol = noiseGoldOre.abs(x, y, z, 5.0);
+                        double gol = noises.get(Noise.GOLD).abs(x, y, z, 5.0);
                         if (gol > 0.78) {
                             chunk.set(dx, dy, dz, OreType.GOLD_ORE);
                         } else if (gol > 0.68) {
@@ -128,7 +148,7 @@ class WorldGenerator {
                     }
                     // Redstone
                     if (y <= redstoneLevel) {
-                        double red = noiseRedstoneOre.abs(x, y, z, 5.0);
+                        double red = noises.get(Noise.REDSTONE).abs(x, y, z, 5.0);
                         if (red > 0.72) {
                             chunk.set(dx, dy, dz, OreType.REDSTONE_ORE);
                         } else if (red > 0.62) {
@@ -137,7 +157,7 @@ class WorldGenerator {
                     }
                     // Lapis
                     if (y <= lapisLevel) {
-                        double lap = noiseLapisOre.abs(x, y, z, 5.0);
+                        double lap = noises.get(Noise.LAPIS).abs(x, y, z, 5.0);
                         if (lap > 0.81) {
                             chunk.set(dx, dy, dz, OreType.LAPIS_ORE);
                         } else if (lap > 0.71) {
@@ -146,26 +166,16 @@ class WorldGenerator {
                     }
                     // Diamond
                     if (y <= diamondLevel) {
-                        double dia = noiseDiamondOre.abs(x, y, z, 5.0);
+                        double dia = noises.get(Noise.DIAMOND).abs(x, y, z, 5.0);
                         if (dia > 0.79) {
                             chunk.set(dx, dy, dz, OreType.DIAMOND_ORE);
                         } else if (dia > 0.69) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.GRANITE);
                         } else if (dia > 0.64) {
-                            if (noiseDiamondOre.at(x, y, z, 1.0) > 0.0) {
+                            if (noises.get(Noise.DIAMOND).at(x, y, z, 1.0) > 0.0) {
                                 chunk.setIfEmpty(dx, dy, dz, OreType.STONE_MONSTER_EGG);
                             }
                         }
-                    }
-                    // Debug
-                    if (diamondLevel == 128 && y == 104) {
-                        chunk.set(dx, dy, dz, OreType.DEBUG);
-                    }
-                    if (diamondLevel == 64 && y == 102) {
-                        chunk.set(dx, dy, dz, OreType.DEBUG);
-                    }
-                    if (diamondLevel == 32 && y == 100) {
-                        chunk.set(dx, dy, dz, OreType.DEBUG);
                     }
                 }
             }
