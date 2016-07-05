@@ -6,13 +6,14 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
 @RequiredArgsConstructor
 public class OreListener implements Listener {
     final OrePlugin plugin;
     
-    @EventHandler(ignoreCancelled = false, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
         Block block = event.getClickedBlock();
         if (block == null) return;
@@ -21,7 +22,16 @@ public class OreListener implements Listener {
         worldGen.realize(block);
     }
 
-    @EventHandler(ignoreCancelled = false, priority = EventPriority.MONITOR)
+    @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
+    public void onBlockDamage(BlockDamageEvent event) {
+        Block block = event.getBlock();
+        if (block == null) return;
+        WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
+        if (worldGen == null) return;
+        worldGen.realize(block);
+    }
+
+    @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
     public void onBlockBreak(BlockBreakEvent event) {
         final Block block = event.getBlock();
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
@@ -32,11 +42,7 @@ public class OreListener implements Listener {
                 for (int x = -R; x <= R; ++x) {
                     Block o = block.getRelative(x, y, z);
                     if (block.getY() < 0 || block.getY() > 255) continue;
-                    if (Math.abs(x) + Math.abs(y) + Math.abs(z) <= 1) {
-                        worldGen.realize(o);
-                    } else {
-                        worldGen.reveal(o);
-                    }
+                    worldGen.realize(o);
                 }
             }
         }
