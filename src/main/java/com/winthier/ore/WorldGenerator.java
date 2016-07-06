@@ -158,9 +158,9 @@ class WorldGenerator {
                     // Lapis
                     if (y <= lapisLevel) {
                         double lap = noises.get(Noise.LAPIS).abs(x, y, z, 5.0);
-                        if (lap > 0.81) {
+                        if (lap > 0.80) { // used to be 0.81
                             chunk.set(dx, dy, dz, OreType.LAPIS_ORE);
-                        } else if (lap > 0.71) {
+                        } else if (lap > 0.70) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.DIORITE);
                         }
                     }
@@ -171,8 +171,8 @@ class WorldGenerator {
                             chunk.set(dx, dy, dz, OreType.DIAMOND_ORE);
                         } else if (dia > 0.69) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.GRANITE);
-                        } else if (dia > 0.64) {
-                            if (noises.get(Noise.DIAMOND).at(x, y, z, 1.0) > 0.0) {
+                        } else if (dia > 0.66) {
+                            if (noises.get(Noise.DIAMOND).at(x, y, z, 1.0) > 0.2) {
                                 chunk.setIfEmpty(dx, dy, dz, OreType.STONE_MONSTER_EGG);
                             }
                         }
