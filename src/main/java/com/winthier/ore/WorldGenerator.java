@@ -26,6 +26,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 class WorldGenerator {
     final String worldName;
+    final MaterialData stoneMat = new MaterialData(Material.STONE);
 
     static public enum Noise {
         DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY;
@@ -305,7 +306,7 @@ class WorldGenerator {
             for (int z = 0; z < OreChunk.SIZE; ++z) {
                 for (int x = 0; x < OreChunk.SIZE; ++x) {
                     OreType ore = chunk.get(x, y, z);
-                    MaterialData mat = ore.getMaterialData();
+                    MaterialData mat = ore.isHidden() ? stoneMat : ore.getMaterialData();
                     if (mat != null) {
                         Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
                         if (block.getType() == Material.STONE &&
@@ -352,12 +353,11 @@ class WorldGenerator {
         OreType ore = chunk.at(block);
         MaterialData mat = ore.getMaterialData();
         if (mat == null) return;
-        if (block.getType() == Material.STONE &&
-            !BukkitExploits.getInstance().isPlayerPlaced(block)) {
-            for (Player player: block.getWorld().getPlayers()) {
-                if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= 4) {
-                    player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
-                }
+        if (block.getType() != Material.STONE) return;
+        if (BukkitExploits.getInstance().isPlayerPlaced(block)) return;
+        for (Player player: block.getWorld().getPlayers()) {
+            if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= 4) {
+                player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
             }
         }
     }

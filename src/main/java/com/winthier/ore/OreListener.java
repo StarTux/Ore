@@ -1,9 +1,12 @@
 package com.winthier.ore;
 
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -37,21 +40,18 @@ public class OreListener implements Listener {
         worldGen.realize(block);
     }
 
+    final List<BlockFace> nbors = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN);
     @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
     public void onBlockBreak(BlockBreakEvent event) {
         final Block block = event.getBlock();
         if (placedBlocks.contains(block)) return;
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
-        final int R = 2;
-        for (int y = -R; y <= R; ++y) {
-            for (int z = -R; z <= R; ++z) {
-                for (int x = -R; x <= R; ++x) {
-                    Block o = block.getRelative(x, y, z);
-                    if (block.getY() < 0 || block.getY() > 255) continue;
-                    worldGen.realize(o);
-                }
-            }
+        worldGen.realize(block);
+        for (BlockFace nbor: nbors) {
+            Block o = block.getRelative(nbor);
+            if (block.getY() < 0 || block.getY() > 255) continue;
+            worldGen.realize(o);
         }
     }
 

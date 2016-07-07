@@ -32,4 +32,10 @@ public enum OreType {
     OreType(Material material, int data) {
         this.materialData = new MaterialData(material, (byte)data);
     }
+    boolean isHidden() {
+        switch (this) {
+        case STONE_MONSTER_EGG: return true;
+        default: return true;
+        }
+    }
 }
