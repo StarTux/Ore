@@ -35,7 +35,7 @@ public enum OreType {
     boolean isHidden() {
         switch (this) {
         case STONE_MONSTER_EGG: return true;
-        default: return true;
+        default: return false;
         }
     }
 }
