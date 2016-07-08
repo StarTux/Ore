@@ -20,6 +20,9 @@ public class OreCommand implements CommandExecutor {
         if (firstArg.equals("reload")) {
             OrePlugin.getInstance().loadWorlds();
             sender.sendMessage("Config reloaded");
+        } else if (firstArg.equals("debug")) {
+            WorldGenerator worldGen = OrePlugin.getInstance().generators.get(player.getWorld().getName());
+            worldGen.debug(player);
         } else if (firstArg.equals("test")) {
             double featureSize = 16.0;
             if (args.length >= 2) featureSize = Double.parseDouble(args[1]);

@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -27,6 +28,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 class WorldGenerator {
     final String worldName;
     final MaterialData stoneMat = new MaterialData(Material.STONE);
+    final int chunkRevealRadius = 3;
 
     static public enum Noise {
         DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY;
@@ -49,6 +51,13 @@ class WorldGenerator {
     final Set<ChunkCoordinate> scheduledChunks = new HashSet<>();
     final LinkedList<UUID> playerList = new LinkedList<>();
     final Map<UUID, PlayerData> playerMap = new HashMap<>();
+
+    void debug(Player player) {
+        player.sendMessage("Generated Chunks " + generatedChunks.size());
+        player.sendMessage("Scheduled Chunks " + scheduledChunks.size());
+        player.sendMessage("Player List " + playerList.size());
+        player.sendMessage("Player Map " + playerMap.size());
+    }
 
     WorldGenerator(String worldName) {
         this.worldName = worldName;
@@ -230,7 +239,8 @@ class WorldGenerator {
         scheduledChunks.remove(coord);
         generatedChunks.put(coord, chunk);
         for (Player player: getWorld().getPlayers()) {
-            if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= 4) {
+            final int R = chunkRevealRadius * chunkRevealRadius;
+            if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= R) {
                 revealChunkToPlayer(chunk, player);
             }
         }
@@ -279,7 +289,7 @@ class WorldGenerator {
 
     void revealToPlayer(Player player) {
         ChunkCoordinate center = ChunkCoordinate.of(player.getLocation());
-        final int R = 1;
+        final int R = chunkRevealRadius;
         for (int y = -R; y <= R; ++y) {
             for (int z = -R; z <= R; ++z) {
                 for (int x = -R; x <= R; ++x) {
@@ -301,18 +311,22 @@ class WorldGenerator {
     }
 
     void revealChunkToPlayer(OreChunk chunk, Player player) {
+        if (player == null) return;
         World world = getWorld();
+        if (!player.getWorld().equals(world)) return;
         for (int y = 0; y < OreChunk.SIZE; ++y) {
             for (int z = 0; z < OreChunk.SIZE; ++z) {
                 for (int x = 0; x < OreChunk.SIZE; ++x) {
                     OreType ore = chunk.get(x, y, z);
-                    MaterialData mat = ore.isHidden() ? stoneMat : ore.getMaterialData();
-                    if (mat != null) {
-                        Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
-                        if (block.getType() == Material.STONE &&
-                            !BukkitExploits.getInstance().isPlayerPlaced(block) &&
-                            isExposedToAir(block)) {
-                            player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
+                    if (!ore.isHidden()) {
+                        MaterialData mat = ore.getMaterialData();
+                        if (mat != null) {
+                            Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
+                            if (block.getType() == Material.STONE &&
+                                !BukkitExploits.getInstance().isPlayerPlaced(block) &&
+                                isExposedToAir(block)) {
+                                player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
+                            }
                         }
                     }
                 }
