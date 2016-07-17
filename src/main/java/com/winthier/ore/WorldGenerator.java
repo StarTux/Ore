@@ -45,6 +45,7 @@ class WorldGenerator {
     // Sync
     static class PlayerData {
         ChunkCoordinate revealedLocation;
+        final Set<ChunkCoordinate> shownChunks = new HashSet<>();
     }
     BukkitRunnable syncTask = null;
     final Map<ChunkCoordinate, OreChunk> generatedChunks = new HashMap<>();
@@ -281,24 +282,30 @@ class WorldGenerator {
                 }
                 if (playerData.revealedLocation == null || playerData.revealedLocation.distanceSquared(ChunkCoordinate.of(player.getLocation())) > 1) {
                     playerData.revealedLocation = ChunkCoordinate.of(player.getLocation());
-                    revealToPlayer(player);
+                    revealToPlayer(playerData, player);
                 }
             }
         }
     }
 
-    void revealToPlayer(Player player) {
+    private void revealToPlayer(PlayerData playerData, Player player) {
         ChunkCoordinate center = ChunkCoordinate.of(player.getLocation());
         final int R = chunkRevealRadius;
         for (int y = -R; y <= R; ++y) {
             for (int z = -R; z <= R; ++z) {
                 for (int x = -R; x <= R; ++x) {
                     OreChunk chunk = getOrGenerate(center.getRelative(x, y, z));
-                    if (chunk != null) {
+                    ChunkCoordinate coord = chunk.getCoordinate();
+                    if (chunk != null && !playerData.shownChunks.contains(coord)) {
                         revealChunkToPlayer(chunk, player);
+                        playerData.shownChunks.add(coord);
                     }
                 }
             }
+        }
+        final int RR = 5 * 5;
+        for (Iterator<ChunkCoordinate> iter = playerData.shownChunks.iterator(); iter.hasNext(); ) {
+            if (iter.next().distanceSquared(center) > RR) iter.remove();
         }
     }
 
