@@ -295,10 +295,12 @@ class WorldGenerator {
             for (int z = -R; z <= R; ++z) {
                 for (int x = -R; x <= R; ++x) {
                     OreChunk chunk = getOrGenerate(center.getRelative(x, y, z));
-                    ChunkCoordinate coord = chunk.getCoordinate();
-                    if (chunk != null && !playerData.shownChunks.contains(coord)) {
-                        revealChunkToPlayer(chunk, player);
-                        playerData.shownChunks.add(coord);
+                    if (chunk != null) {
+                        ChunkCoordinate coord = chunk.getCoordinate();
+                        if (!playerData.shownChunks.contains(coord)) {
+                            revealChunkToPlayer(chunk, player);
+                            playerData.shownChunks.add(coord);
+                        }
                     }
                 }
             }
