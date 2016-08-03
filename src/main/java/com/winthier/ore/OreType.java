@@ -16,7 +16,6 @@ public enum OreType {
     GRANITE(Material.STONE, 1),
     DIORITE(Material.STONE, 3),
     ANDESITE(Material.STONE, 5),
-    STONE_MONSTER_EGG(Material.MONSTER_EGGS, 0),
     CLAY(Material.CLAY),
     DEBUG,
     ;
@@ -31,11 +30,5 @@ public enum OreType {
     }
     OreType(Material material, int data) {
         this.materialData = new MaterialData(material, (byte)data);
-    }
-    boolean isHidden() {
-        switch (this) {
-        case STONE_MONSTER_EGG: return true;
-        default: return false;
-        }
     }
 }

@@ -143,7 +143,7 @@ class WorldGenerator {
                         double iro = noises.get(Noise.IRON).abs(x, y, z, 5.0);
                         if (iro  > 0.71) {
                             chunk.set(dx, dy, dz, OreType.IRON_ORE);
-                        } else if (iro > 0.61) {
+                        } else if (iro > 0.58) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.ANDESITE);
                         }
                     }
@@ -152,7 +152,7 @@ class WorldGenerator {
                         double gol = noises.get(Noise.GOLD).abs(x, y, z, 5.0);
                         if (gol > 0.78) {
                             chunk.set(dx, dy, dz, OreType.GOLD_ORE);
-                        } else if (gol > 0.68) {
+                        } else if (gol > 0.58) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.DIORITE);
                         }
                     }
@@ -161,30 +161,26 @@ class WorldGenerator {
                         double red = noises.get(Noise.REDSTONE).abs(x, y, z, 5.0);
                         if (red > 0.72) {
                             chunk.set(dx, dy, dz, OreType.REDSTONE_ORE);
-                        } else if (red > 0.62) {
+                        } else if (red > 0.58) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.GRANITE);
                         }
                     }
                     // Lapis
                     if (y <= lapisLevel) {
-                        double lap = noises.get(Noise.LAPIS).abs(x, y, z, 5.0);
-                        if (lap > 0.80) { // used to be 0.81
+                        double lap = noises.get(Noise.LAPIS).abs(x, y, z, 4.0);
+                        if (lap > 0.79) { // used to be 0.81
                             chunk.set(dx, dy, dz, OreType.LAPIS_ORE);
-                        } else if (lap > 0.70) {
+                        } else if (lap > 0.55) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.DIORITE);
                         }
                     }
                     // Diamond
                     if (y <= diamondLevel) {
-                        double dia = noises.get(Noise.DIAMOND).abs(x, y, z, 5.0);
+                        double dia = noises.get(Noise.DIAMOND).abs(x, y, z, 4.0);
                         if (dia > 0.79) {
                             chunk.set(dx, dy, dz, OreType.DIAMOND_ORE);
-                        } else if (dia > 0.69) {
+                        } else if (dia > 0.58) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.GRANITE);
-                        } else if (dia > 0.66) {
-                            if (noises.get(Noise.DIAMOND).at(x, y, z, 1.0) > 0.2) {
-                                chunk.setIfEmpty(dx, dy, dz, OreType.STONE_MONSTER_EGG);
-                            }
                         }
                     }
                 }
@@ -326,15 +322,13 @@ class WorldGenerator {
             for (int z = 0; z < OreChunk.SIZE; ++z) {
                 for (int x = 0; x < OreChunk.SIZE; ++x) {
                     OreType ore = chunk.get(x, y, z);
-                    if (!ore.isHidden()) {
-                        MaterialData mat = ore.getMaterialData();
-                        if (mat != null) {
-                            Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
-                            if (block.getType() == Material.STONE &&
-                                !OrePlugin.getInstance().isPlayerPlaced(block) &&
-                                isExposedToAir(block)) {
-                                player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
-                            }
+                    MaterialData mat = ore.getMaterialData();
+                    if (mat != null) {
+                        Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
+                        if (block.getType() == Material.STONE &&
+                            !OrePlugin.getInstance().isPlayerPlaced(block) &&
+                            isExposedToAir(block)) {
+                            player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
                         }
                     }
                 }
