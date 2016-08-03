@@ -40,7 +40,31 @@ public class OreListener implements Listener {
         worldGen.realize(block);
     }
 
-    final List<BlockFace> nbors = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN);
+    @RequiredArgsConstructor static class Rel { final int x, y, z; }
+    final static List<Rel> nbors = Arrays.asList(
+        // 1 out
+        new Rel( 1,  0,  0),
+        new Rel(-1,  0,  0),
+        new Rel( 0,  1,  0),
+        new Rel( 0, -1,  0),
+        new Rel( 0,  0,  1),
+        new Rel( 0,  0, -1),
+        // Diagonal
+        new Rel( 0,  1,  1),
+        new Rel( 0,  1, -1),
+        new Rel( 0, -1,  1),
+        new Rel( 0, -1, -1),
+
+        new Rel( 1,  0,  1),
+        new Rel( 1,  0, -1),
+        new Rel(-1,  0,  1),
+        new Rel(-1,  0, -1),
+
+        new Rel( 1,  1,  0),
+        new Rel( 1, -1,  0),
+        new Rel(-1,  1,  0),
+        new Rel(-1, -1,  0)
+        );
     @EventHandler(ignoreCancelled = false, priority = EventPriority.LOWEST)
     public void onBlockBreak(BlockBreakEvent event) {
         final Block block = event.getBlock();
@@ -48,8 +72,8 @@ public class OreListener implements Listener {
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
         worldGen.realize(block);
-        for (BlockFace nbor: nbors) {
-            Block o = block.getRelative(nbor);
+        for (Rel nbor: nbors) {
+            Block o = block.getRelative(nbor.x, nbor.y, nbor.z);
             if (block.getY() < 0 || block.getY() > 255) continue;
             worldGen.realize(o);
         }

@@ -124,6 +124,12 @@ public class OreCommand implements CommandExecutor {
             ChunkCoordinate coord = ChunkCoordinate.of(player.getLocation());
             int level = OrePlugin.getInstance().generators.get(player.getWorld().getName()).getOreLevel(noise, coord.getX(), coord.getZ());
             player.sendMessage("Level of " + noise + " = " + level);
+        } else if (firstArg.equals("star") && args.length == 1) {
+            Block center = player.getLocation().getBlock();
+            for (OreListener.Rel nbor: OreListener.nbors) {
+                Block block = center.getRelative(nbor.x, nbor.y, nbor.z);
+                player.sendBlockChange(block.getLocation(), 1, (byte)0);
+            }
         }
         return true;
     }
