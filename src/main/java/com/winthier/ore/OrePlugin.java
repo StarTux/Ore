@@ -3,17 +3,24 @@ package com.winthier.ore;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class OrePlugin extends JavaPlugin {
     @Getter static OrePlugin instance;
     final Map<String, WorldGenerator> generators = new HashMap<>();
+    ExploitsHandler exploitsHandler = null;
     
     @Override
     public void onEnable() {
         saveDefaultConfig();
         instance = this;
+        if (getServer().getPluginManager().getPlugin("Exploits") != null) {
+            exploitsHandler = new ExploitsHandler();
+        } else {
+            getLogger().warning("Exploits not found!");
+        }
         getCommand("ore").setExecutor(new OreCommand());
         getServer().getPluginManager().registerEvents(new OreListener(this), this);
         loadWorlds();
@@ -52,5 +59,10 @@ public class OrePlugin extends JavaPlugin {
     public void onDisable() {
         unloadWorlds();
         instance = null;
+    }
+
+    boolean isPlayerPlaced(Block block) {
+        if (exploitsHandler == null) return false;
+        return exploitsHandler.isPlayerPlaced(block);
     }
 }

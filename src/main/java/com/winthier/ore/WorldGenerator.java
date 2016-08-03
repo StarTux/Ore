@@ -1,6 +1,5 @@
 package com.winthier.ore;
 
-import com.winthier.exploits.bukkit.BukkitExploits;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -332,7 +331,7 @@ class WorldGenerator {
                         if (mat != null) {
                             Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
                             if (block.getType() == Material.STONE &&
-                                !BukkitExploits.getInstance().isPlayerPlaced(block) &&
+                                !OrePlugin.getInstance().isPlayerPlaced(block) &&
                                 isExposedToAir(block)) {
                                 player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
                             }
@@ -364,7 +363,7 @@ class WorldGenerator {
         MaterialData mat = ore.getMaterialData();
         if (mat == null) return;
         if (block.getType() == Material.STONE &&
-            !BukkitExploits.getInstance().isPlayerPlaced(block)) {
+            !OrePlugin.getInstance().isPlayerPlaced(block)) {
             block.setTypeIdAndData(mat.getItemTypeId(), mat.getData(), false);
         }
     }
@@ -377,7 +376,7 @@ class WorldGenerator {
         MaterialData mat = ore.getMaterialData();
         if (mat == null) return;
         if (block.getType() != Material.STONE) return;
-        if (BukkitExploits.getInstance().isPlayerPlaced(block)) return;
+        if (OrePlugin.getInstance().isPlayerPlaced(block)) return;
         for (Player player: block.getWorld().getPlayers()) {
             if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= 4) {
                 player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
