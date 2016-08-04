@@ -164,7 +164,7 @@ class WorldGenerator {
                         }
                     }
                     // Slime
-                    if (isSlimeChunk && y <= 48) {
+                    if (isSlimeChunk && y <= 40) {
                         if (noises.get(Noise.SLIME).abs(x, y, z, 5.0) > 0.7) {
                             chunk.set(dx, dy, dz, OreType.SLIME);
                         }
