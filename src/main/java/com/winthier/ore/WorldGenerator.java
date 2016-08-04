@@ -32,9 +32,10 @@ class WorldGenerator {
     final int chunkRevealRadius = 3;
     final Random random = new Random(System.currentTimeMillis());
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
+    final long worldSeed;
 
     static public enum Noise {
-        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY, DUNGEON, EMERALD;
+        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY, DUNGEON, EMERALD, SLIME;
     }
 
     final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
@@ -65,8 +66,8 @@ class WorldGenerator {
 
     WorldGenerator(String worldName) {
         this.worldName = worldName;
-        
-        Random random = new Random(Bukkit.getServer().getWorld(worldName).getSeed());
+        worldSeed = Bukkit.getServer().getWorld(worldName).getSeed();
+        Random random = new Random(worldSeed);
         for (Noise noise: Noise.values()) {
             noises.put(noise, new OpenSimplexNoise(random.nextLong()));
         }
@@ -101,6 +102,13 @@ class WorldGenerator {
         } else {
             return 0;
         }
+    }
+
+    boolean isSlimeChunk(OreChunk chunk) {
+        int x = chunk.getX();
+        int z = chunk.getZ();
+        Random tmprnd = new Random(worldSeed + (long) (x * x * 0x4c1906) + (long) (x * 0x5ac0db) + (long) (z * z) * 0x4307a7L + (long) (z * 0x5f24f) ^ 0x3ad8025f);
+        return tmprnd.nextInt(10) == 0;
     }
 
     void generate(OreChunk chunk) {
@@ -140,6 +148,8 @@ class WorldGenerator {
             isMesa = false;
         }
 
+        boolean isSlimeChunk = isSlimeChunk(chunk);
+
         for (int dy = 0; dy < OreChunk.SIZE; ++dy) {
             for (int dz = 0; dz < OreChunk.SIZE; ++dz) {
                 for (int dx = 0; dx < OreChunk.SIZE; ++dx) {
@@ -151,6 +161,12 @@ class WorldGenerator {
                     if (y <= 64 && y > 32) {
                         if (noises.get(Noise.CLAY).abs(x, y, z, 8.0) > 0.65) {
                             chunk.set(dx, dy, dz, OreType.CLAY);
+                        }
+                    }
+                    // Slime
+                    if (isSlimeChunk && y <= 48) {
+                        if (noises.get(Noise.SLIME).abs(x, y, z, 5.0) > 0.7) {
+                            chunk.set(dx, dy, dz, OreType.SLIME);
                         }
                     }
                     // Coal

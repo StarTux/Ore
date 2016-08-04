@@ -130,6 +130,11 @@ public class OreCommand implements CommandExecutor {
                 Block block = center.getRelative(nbor.x, nbor.y, nbor.z);
                 player.sendBlockChange(block.getLocation(), 1, (byte)0);
             }
+        } else if (firstArg.equals("slime") && args.length == 1) {
+            WorldGenerator worldGen = OrePlugin.getInstance().generators.get(player.getWorld().getName());
+            OreChunk chunk = OreChunk.of(player.getLocation().getBlock());
+            boolean result = worldGen.isSlimeChunk(chunk);
+            player.sendMessage("Slime=" + result);
         }
         return true;
     }
