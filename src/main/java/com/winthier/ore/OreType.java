@@ -17,6 +17,7 @@ public enum OreType {
     DIORITE(Material.STONE, 3),
     ANDESITE(Material.STONE, 5),
     CLAY(Material.CLAY),
+    DUNGEON(Material.GLOWSTONE),
     DEBUG,
     ;
 
@@ -25,10 +26,16 @@ public enum OreType {
     OreType() {
         this.materialData = null;
     }
+
     OreType(Material material) {
         this.materialData = new MaterialData(material, (byte)0);
     }
+
     OreType(Material material, int data) {
         this.materialData = new MaterialData(material, (byte)data);
+    }
+
+    boolean isHidden() {
+        return this == OreType.DUNGEON;
     }
 }

@@ -2136,11 +2136,19 @@ public class OpenSimplexNoise {
 	    -3, -1, -1, -1,     -1, -3, -1, -1,     -1, -1, -3, -1,     -1, -1, -1, -3,
 	};
     
+    public double at(int x, int y, int z, double sx, double sy, double sz) {
+        return eval(x/sx, y/sy, z/sz);
+    }
+
     public double at(int x, int y, int z, double featureSize) {
         return eval(x/featureSize, y/featureSize, z/featureSize);
     }
 
     public double abs(int x, int y, int z, double featureSize) {
         return Math.abs(at(x, y, z, featureSize));
+    }
+
+    public double abs(int x, int y, int z, double sx, double sy, double sz) {
+        return Math.abs(at(x, y, z, sx, sy, sz));
     }
 }

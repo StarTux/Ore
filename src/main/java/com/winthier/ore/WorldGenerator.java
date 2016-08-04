@@ -20,6 +20,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -28,9 +29,11 @@ class WorldGenerator {
     final String worldName;
     final MaterialData stoneMat = new MaterialData(Material.STONE);
     final int chunkRevealRadius = 3;
+    final Random random = new Random(System.currentTimeMillis());
+    final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
 
     static public enum Noise {
-        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY;
+        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY, DUNGEON;
     }
 
     final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
@@ -136,6 +139,13 @@ class WorldGenerator {
                     if (y <= 128) {
                         if (noises.get(Noise.COAL).abs(x, y, z, 5.0) > 0.66) {
                             chunk.set(dx, dy, dz, OreType.COAL_ORE);
+                        }
+                    }
+                    // Dungeon
+                    if (y <= 32) {
+                        double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 8.0, 6.0, 8.0);
+                        if (dun > 0.65) {
+                            chunk.set(dx, dy, dz, OreType.DUNGEON);
                         }
                     }
                     // Iron
@@ -307,8 +317,7 @@ class WorldGenerator {
     }
 
     static boolean isExposedToAir(Block block) {
-        final List<BlockFace> dirs = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN);
-        for (BlockFace dir: dirs) {
+        for (BlockFace dir: NBORS) {
             if (block.getRelative(dir).getType() == Material.AIR) return true;
         }
         return false;
@@ -323,7 +332,7 @@ class WorldGenerator {
                 for (int x = 0; x < OreChunk.SIZE; ++x) {
                     OreType ore = chunk.get(x, y, z);
                     MaterialData mat = ore.getMaterialData();
-                    if (mat != null) {
+                    if (mat != null && !ore.isHidden()) {
                         Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
                         if (block.getType() == Material.STONE &&
                             !OrePlugin.getInstance().isPlayerPlaced(block) &&
@@ -349,17 +358,81 @@ class WorldGenerator {
         return result;
     }
 
+    OreType getOreAt(Block block) {
+        ChunkCoordinate coord = ChunkCoordinate.of(block);
+        OreChunk chunk = generatedChunks.get(coord);
+        if (chunk == null) return null;
+        return chunk.at(block);
+    }
+
     void realize(Block block) {
+        if (block.getType() != Material.STONE) return;
+        if (OrePlugin.getInstance().isPlayerPlaced(block)) return;
         ChunkCoordinate coord = ChunkCoordinate.of(block);
         OreChunk chunk = getOrGenerate(coord);
         if (chunk == null) return;
         OreType ore = chunk.at(block);
+        if (ore == null || ore.isHidden()) return;
         MaterialData mat = ore.getMaterialData();
-        if (mat == null) return;
-        if (block.getType() == Material.STONE &&
-            !OrePlugin.getInstance().isPlayerPlaced(block)) {
+        if (mat != null) {
             block.setTypeIdAndData(mat.getItemTypeId(), mat.getData(), false);
         }
+    }
+
+    void revealDungeon(Block block) {
+        LinkedList<Block> todo = new LinkedList<>();
+        Set<Block> found = new HashSet<>();
+        Set<Block> done = new HashSet<>();
+        todo.add(block);
+        while (!todo.isEmpty() && found.size() < 1000) {
+            Block doBlock = todo.removeFirst();
+            if (doBlock.getType() == Material.STONE &&
+                !OrePlugin.getInstance().isPlayerPlaced(doBlock) &&
+                getOreAt(doBlock) == OreType.DUNGEON) {
+                found.add(doBlock);
+                for (BlockFace dir: NBORS) {
+                    Block nborBlock = doBlock.getRelative(dir);
+                    if (!done.contains(nborBlock)) {
+                        todo.add(nborBlock);
+                        done.add(nborBlock);
+                    }
+                }
+            }
+        }
+        for (Block foundBlock: found) {
+            foundBlock.setType(Material.AIR, false);
+        }
+        for (Block foundBlock: found) {
+            if (!found.contains(foundBlock.getRelative(BlockFace.DOWN)) &&
+                found.contains(foundBlock.getRelative(BlockFace.UP))) {
+                if (noises.get(Noise.DUNGEON).at(foundBlock.getX(), foundBlock.getY(), foundBlock.getZ(), 1.0) > 0.32) {
+                    EntityType et = randomEntityType();
+                    foundBlock.getWorld().spawnEntity(foundBlock.getLocation().add(0.5, 0.0, 0.5), et);
+                }
+            }
+            // Reveal walls
+            for (BlockFace dir: NBORS) {
+                Block nbor = foundBlock.getRelative(dir);
+                if (!found.contains(nbor)) realize(nbor);
+            }
+        }
+    }
+
+    final static EntityType[] ENT = {
+        EntityType.ZOMBIE,
+        EntityType.ZOMBIE,
+        EntityType.ZOMBIE,
+        EntityType.SKELETON,
+        EntityType.SKELETON,
+        EntityType.CREEPER,
+        EntityType.CREEPER,
+        EntityType.WITCH,
+        EntityType.CAVE_SPIDER,
+        EntityType.SILVERFISH,
+        EntityType.SLIME
+    };
+    EntityType randomEntityType() {
+        return ENT[random.nextInt(ENT.length)];
     }
 
     void reveal(Block block) {
@@ -367,6 +440,7 @@ class WorldGenerator {
         OreChunk chunk = getOrGenerate(coord);
         if (chunk == null) return;
         OreType ore = chunk.at(block);
+        if (ore.isHidden()) return;
         MaterialData mat = ore.getMaterialData();
         if (mat == null) return;
         if (block.getType() != Material.STONE) return;
