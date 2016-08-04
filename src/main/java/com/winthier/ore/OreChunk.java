@@ -2,6 +2,8 @@ package com.winthier.ore;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 
 @Getter
@@ -9,6 +11,7 @@ import org.bukkit.block.Block;
 class OreChunk {
     final static int SIZE = 16;
     final int x, y, z;
+    final Biome biome;
     final OreType[] ores = new OreType[SIZE * SIZE * SIZE];
     long lastUse = System.currentTimeMillis();
 
@@ -19,11 +22,7 @@ class OreChunk {
         int rx = x < 0 ? (x + 1) / SIZE - 1 : x / SIZE;
         int ry = y < 0 ? (y + 1) / SIZE - 1 : y / SIZE;
         int rz = z < 0 ? (z + 1) / SIZE - 1 : z / SIZE;
-        return new OreChunk(rx, ry, rz);
-    }
-
-    static OreChunk of(ChunkCoordinate coord) {
-        return new OreChunk(coord.getX(), coord.getY(), coord.getZ());
+        return new OreChunk(rx, ry, rz, block.getBiome());
     }
 
     void set(int x, int y, int z, OreType ore) {
@@ -71,9 +70,9 @@ class OreChunk {
     void setUsed() {
         lastUse = System.currentTimeMillis();
     }
-
+    
     boolean isTooOld() {
         long now = System.currentTimeMillis();
         return lastUse + 1000*60*10 < now; // 10 minutes
-     }
+    }
 }

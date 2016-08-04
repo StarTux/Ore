@@ -75,7 +75,7 @@ public class OreCommand implements CommandExecutor {
             for (int y = 0; y <= 15; ++y) {
                 for (int z = ch.getZ() - R; z <= ch.getZ() + R; ++z) {
                     for (int x = ch.getX() - R; x <= ch.getX() + R; ++x) {
-                        OreChunk chunk = new OreChunk(x, y, z);
+                        OreChunk chunk = OreChunk.of(new ChunkCoordinate(x, y, z).getBlock(player.getWorld()));
                         worldgen.generate(chunk);
                         for (int dy = 0; dy < 16; ++dy) {
                             for (int dz = 0; dz < 16; ++dz) {

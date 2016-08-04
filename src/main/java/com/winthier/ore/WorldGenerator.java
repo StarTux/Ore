@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
@@ -112,6 +113,20 @@ class WorldGenerator {
         int ironLevel = 64;
         int goldLevel = 32;
 
+        boolean isMesa;
+        switch (chunk.getBiome()) {
+        case MESA:
+        case MESA_CLEAR_ROCK:
+        case MESA_ROCK:
+        case MUTATED_MESA:
+        case MUTATED_MESA_CLEAR_ROCK:
+        case MUTATED_MESA_ROCK:
+            isMesa = true;
+            break;
+        default:
+            isMesa = false;
+        }
+
         if (generateHotspots) {
             int x = chunk.getX();
             int y = chunk.getZ();
@@ -158,7 +173,8 @@ class WorldGenerator {
                         }
                     }
                     // Gold
-                    if (y <= goldLevel) {
+                    if (y <= goldLevel ||
+                        (isMesa && y >= 32 && y <= 79)) {
                         double gol = noises.get(Noise.GOLD).abs(x, y, z, 5.0);
                         if (gol > 0.78) {
                             chunk.set(dx, dy, dz, OreType.GOLD_ORE);
@@ -350,7 +366,7 @@ class WorldGenerator {
         if (result == null) {
             if (!scheduledChunks.contains(coord)) {
                 scheduledChunks.add(coord);
-                queue.offer(OreChunk.of(coord));
+                queue.offer(OreChunk.of(coord.getBlock(getWorld())));
             }
         } else {
             result.setUsed();

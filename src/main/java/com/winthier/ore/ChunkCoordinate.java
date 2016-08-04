@@ -2,6 +2,7 @@ package com.winthier.ore;
 
 import lombok.Value;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 
 @Value
@@ -20,6 +21,10 @@ class ChunkCoordinate {
 
     static ChunkCoordinate of(Location loc) {
         return of(loc.getBlock());
+    }
+
+    Block getBlock(World world) {
+        return world.getBlockAt(x * OreChunk.SIZE, y * OreChunk.SIZE, z * OreChunk.SIZE);
     }
 
     int distanceSquared(ChunkCoordinate other) {
