@@ -18,7 +18,7 @@ public enum OreType {
     DIORITE(Material.STONE, 3),
     ANDESITE(Material.STONE, 5),
     CLAY(Material.CLAY),
-    DUNGEON(Material.GLOWSTONE),
+    DUNGEON,
     DEBUG,
     ;
 
