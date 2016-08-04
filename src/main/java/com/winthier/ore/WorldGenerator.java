@@ -34,7 +34,7 @@ class WorldGenerator {
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
 
     static public enum Noise {
-        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY, DUNGEON;
+        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY, DUNGEON, EMERALD;
     }
 
     final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
@@ -84,6 +84,7 @@ class WorldGenerator {
         case COAL: return 64;
         case GOLD: return 32;
         case REDSTONE: return 32;
+        case EMERALD: return 32;
         default: return 16;
         }
     }
@@ -112,6 +113,18 @@ class WorldGenerator {
         int redstoneLevel = 16;
         int ironLevel = 64;
         int goldLevel = 32;
+        int emeraldLevel = 0;
+
+        if (generateHotspots) {
+            int x = chunk.getX();
+            int y = chunk.getZ();
+            diamondLevel = getOreLevel(Noise.DIAMOND, x, y);
+            lapisLevel = getOreLevel(Noise.LAPIS, x, y);
+            redstoneLevel = getOreLevel(Noise.REDSTONE, x, y);
+            ironLevel = getOreLevel(Noise.IRON, x, y);
+            goldLevel = getOreLevel(Noise.GOLD, x, y);
+            emeraldLevel = getOreLevel(Noise.EMERALD, x, y);
+        }
 
         boolean isMesa;
         switch (chunk.getBiome()) {
@@ -125,16 +138,6 @@ class WorldGenerator {
             break;
         default:
             isMesa = false;
-        }
-
-        if (generateHotspots) {
-            int x = chunk.getX();
-            int y = chunk.getZ();
-            diamondLevel = getOreLevel(Noise.DIAMOND, x, y);
-            lapisLevel = getOreLevel(Noise.LAPIS, x, y);
-            redstoneLevel = getOreLevel(Noise.REDSTONE, x, y);
-            ironLevel = getOreLevel(Noise.IRON, x, y);
-            goldLevel = getOreLevel(Noise.GOLD, x, y);
         }
 
         for (int dy = 0; dy < OreChunk.SIZE; ++dy) {
@@ -198,6 +201,13 @@ class WorldGenerator {
                             chunk.set(dx, dy, dz, OreType.LAPIS_ORE);
                         } else if (lap > 0.55) {
                             chunk.setIfEmpty(dx, dy, dz, OreType.DIORITE);
+                        }
+                    }
+                    // Emerald
+                    if (y <= emeraldLevel) {
+                        double eme = noises.get(Noise.EMERALD).abs(x, y, z, 4.0);
+                        if (eme > 0.79) {
+                            chunk.set(dx, dy, dz, OreType.EMERALD_ORE);
                         }
                     }
                     // Diamond

@@ -11,6 +11,7 @@ public enum OreType {
     IRON_ORE(Material.IRON_ORE),
     LAPIS_ORE(Material.LAPIS_ORE),
     GOLD_ORE(Material.GOLD_ORE),
+    EMERALD_ORE(Material.EMERALD_ORE),
     DIAMOND_ORE(Material.DIAMOND_ORE),
     REDSTONE_ORE(Material.REDSTONE_ORE),
     GRANITE(Material.STONE, 1),
