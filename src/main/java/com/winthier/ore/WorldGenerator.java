@@ -206,8 +206,8 @@ class WorldGenerator {
                     }
                     // Dungeon
                     if (y <= 32) {
-                        double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 8.0, 6.0, 8.0);
-                        if (dun > 0.65) {
+                        double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 9.0, 7.0, 9.0);
+                        if (dun > 0.64) {
                             chunk.set(dx, dy, dz, OreType.DUNGEON);
                         }
                     }
@@ -468,15 +468,32 @@ class WorldGenerator {
                 }
             }
         }
+        Special special = Special.of(block.getBiome());
+        List<MaterialData> floorBlocks;
+        if (special == Special.OCEAN) {
+            floorBlocks = Arrays.asList(new MaterialData(Material.PRISMARINE, (byte)1), new MaterialData(Material.PRISMARINE, (byte)2));
+        } else if (special == Special.DESERT) {
+            floorBlocks = Arrays.asList(new MaterialData(Material.RED_SANDSTONE));
+        } else if (special == Special.MESA) {
+            floorBlocks = Arrays.asList(new MaterialData(Material.HARD_CLAY));
+        } else {
+            floorBlocks = Arrays.asList(new MaterialData(Material.COBBLESTONE), new MaterialData(Material.MOSSY_COBBLESTONE));
+        }
         for (Block foundBlock: found) {
-            foundBlock.setType(Material.AIR, false);
+            if (!found.contains(foundBlock.getRelative(BlockFace.DOWN))) {
+                MaterialData mat = floorBlocks.get(random.nextInt(floorBlocks.size()));
+                foundBlock.setTypeIdAndData(mat.getItemTypeId(), mat.getData(), true);
+            } else {
+                foundBlock.setType(Material.AIR, false);
+            }
         }
         for (Block foundBlock: found) {
             if (!found.contains(foundBlock.getRelative(BlockFace.DOWN)) &&
-                found.contains(foundBlock.getRelative(BlockFace.UP))) {
+                found.contains(foundBlock.getRelative(BlockFace.UP, 1)) &&
+                found.contains(foundBlock.getRelative(BlockFace.UP, 2))) {
                 if (noises.get(Noise.DUNGEON).at(foundBlock.getX(), foundBlock.getY(), foundBlock.getZ(), 1.0) > 0.32) {
                     EntityType et = randomEntityType();
-                    foundBlock.getWorld().spawnEntity(foundBlock.getLocation().add(0.5, 0.0, 0.5), et);
+                    foundBlock.getWorld().spawnEntity(foundBlock.getLocation().add(0.5, 1.0, 0.5), et);
                 }
             }
             // Reveal walls
