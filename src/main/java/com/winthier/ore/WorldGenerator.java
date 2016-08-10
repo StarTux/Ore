@@ -387,7 +387,7 @@ class WorldGenerator {
 
     static boolean isExposedToAir(Block block) {
         for (BlockFace dir: NBORS) {
-            if (block.getRelative(dir).getType() == Material.AIR) return true;
+            if (!block.getRelative(dir).getType().isOccluding()) return true;
         }
         return false;
     }
