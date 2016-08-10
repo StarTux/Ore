@@ -19,6 +19,9 @@ public enum OreType {
     ANDESITE(Material.STONE, 5),
     CLAY(Material.CLAY),
     SLIME(Material.SLIME_BLOCK),
+    FOSSIL(Material.BONE_BLOCK),
+    PRISMARINE(Material.PRISMARINE),
+    SEA_LANTERN(Material.SEA_LANTERN),
     DUNGEON,
     DEBUG,
     ;

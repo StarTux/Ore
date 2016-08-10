@@ -35,7 +35,32 @@ class WorldGenerator {
     final long worldSeed;
 
     static public enum Noise {
-        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, CLAY, DUNGEON, EMERALD, SLIME;
+        // Do NOT change the order of this enum!
+        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, SPECIAL, DUNGEON, EMERALD, SLIME;
+    }
+    static public enum Special {
+        NONE, MESA, OCEAN, DESERT;
+        static Special of(Biome biome) {
+            switch (biome) {
+            case MESA:
+            case MESA_CLEAR_ROCK:
+            case MESA_ROCK:
+            case MUTATED_MESA:
+            case MUTATED_MESA_CLEAR_ROCK:
+            case MUTATED_MESA_ROCK:
+                return MESA;
+            case DESERT:
+            case DESERT_HILLS:
+            case MUTATED_DESERT:
+                return DESERT;
+            case DEEP_OCEAN:
+            case FROZEN_OCEAN:
+            case OCEAN:
+                return OCEAN;
+            default:
+                return NONE;
+            }
+        }
     }
 
     final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
@@ -134,20 +159,7 @@ class WorldGenerator {
             emeraldLevel = getOreLevel(Noise.EMERALD, x, y);
         }
 
-        boolean isMesa;
-        switch (chunk.getBiome()) {
-        case MESA:
-        case MESA_CLEAR_ROCK:
-        case MESA_ROCK:
-        case MUTATED_MESA:
-        case MUTATED_MESA_CLEAR_ROCK:
-        case MUTATED_MESA_ROCK:
-            isMesa = true;
-            break;
-        default:
-            isMesa = false;
-        }
-
+        Special special = Special.of(chunk.getBiome());
         boolean isSlimeChunk = isSlimeChunk(chunk);
 
         for (int dy = 0; dy < OreChunk.SIZE; ++dy) {
@@ -157,10 +169,27 @@ class WorldGenerator {
                     int y = cy + dy;
                     int z = cz + dz;
                     if (y <= 0) continue;
-                    // Clay
-                    if (y <= 64 && y > 32) {
-                        if (noises.get(Noise.CLAY).abs(x, y, z, 8.0) > 0.65) {
-                            chunk.set(dx, dy, dz, OreType.CLAY);
+                    if (special == Special.NONE) { // Clay
+                        if (y <= 64 && y >= 32) {
+                            if (noises.get(Noise.SPECIAL).abs(x, y, z, 8.0) > 0.65) {
+                                chunk.set(dx, dy, dz, OreType.CLAY);
+                            }
+                        }
+                    } else if (special == Special.DESERT) { // Fossils
+                        if (y >= 32) {
+                            if (noises.get(Noise.SPECIAL).abs(x, y, z, 8.0) > 0.65 &&
+                                noises.get(Noise.SPECIAL).at(x, y, z, 1.0) > 0.0) {
+                                chunk.set(dx, dy, dz, OreType.FOSSIL);
+                            }
+                        }
+                    } else if (special == Special.OCEAN) { // Prismarine
+                        if (y < 32) {
+                            double pri = noises.get(Noise.SPECIAL).abs(x, y, z, 6.0);
+                            if (pri > 0.79) {
+                                chunk.set(dx, dy, dz, OreType.SEA_LANTERN);
+                            } else if (pri > 0.66) {
+                                chunk.set(dx, dy, dz, OreType.PRISMARINE);
+                            }
                         }
                     }
                     // Slime
@@ -193,7 +222,7 @@ class WorldGenerator {
                     }
                     // Gold
                     if (y <= goldLevel ||
-                        (isMesa && y >= 32 && y <= 79)) {
+                        (special == Special.MESA && y >= 32 && y <= 79)) {
                         double gol = noises.get(Noise.GOLD).abs(x, y, z, 5.0);
                         if (gol > 0.78) {
                             chunk.set(dx, dy, dz, OreType.GOLD_ORE);
