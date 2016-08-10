@@ -204,10 +204,8 @@ class WorldGenerator {
                     // Redstone
                     if (y <= redstoneLevel) {
                         double red = noises.get(Noise.REDSTONE).abs(x, y, z, 5.0);
-                        if (red > 0.72) {
+                        if (red > 0.73) {
                             chunk.set(dx, dy, dz, OreType.REDSTONE_ORE);
-                        } else if (red > 0.58) {
-                            chunk.setIfEmpty(dx, dy, dz, OreType.GRANITE);
                         }
                     }
                     // Lapis
