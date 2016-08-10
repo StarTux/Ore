@@ -455,7 +455,8 @@ class WorldGenerator {
         todo.add(block);
         while (!todo.isEmpty() && found.size() < 1000) {
             Block doBlock = todo.removeFirst();
-            if (doBlock.getType() == Material.STONE &&
+            if ((doBlock.getType() == Material.STONE ||
+                 doBlock.getType() == Material.AIR) &&
                 !OrePlugin.getInstance().isPlayerPlaced(doBlock) &&
                 getOreAt(doBlock) == OreType.DUNGEON) {
                 found.add(doBlock);
@@ -479,14 +480,27 @@ class WorldGenerator {
         } else {
             floorBlocks = Arrays.asList(new MaterialData(Material.COBBLESTONE), new MaterialData(Material.MOSSY_COBBLESTONE));
         }
+        Set<Block> addLater = new HashSet<>();
         for (Block foundBlock: found) {
             if (!found.contains(foundBlock.getRelative(BlockFace.DOWN))) {
+                // Set floor
                 MaterialData mat = floorBlocks.get(random.nextInt(floorBlocks.size()));
                 foundBlock.setTypeIdAndData(mat.getItemTypeId(), mat.getData(), true);
+                // Try to expand to 3 height
+                for (int i = 0; i < 3; ++i) {
+                    Block laterBlock = foundBlock.getRelative(BlockFace.UP, i + 1);
+                    if (!found.contains(laterBlock) &&
+                        (laterBlock.getType() == Material.STONE ||
+                         laterBlock.getType() == Material.AIR)) {
+                        laterBlock.setType(Material.AIR, false);
+                        addLater.add(laterBlock);
+                    }
+                }
             } else {
                 foundBlock.setType(Material.AIR, false);
             }
         }
+        found.addAll(addLater);
         for (Block foundBlock: found) {
             if (!found.contains(foundBlock.getRelative(BlockFace.DOWN)) &&
                 found.contains(foundBlock.getRelative(BlockFace.UP, 1)) &&
