@@ -39,7 +39,7 @@ class WorldGenerator {
         DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, SPECIAL, DUNGEON, EMERALD, SLIME;
     }
     static public enum Special {
-        NONE, MESA, OCEAN, DESERT;
+        NONE, MESA, OCEAN, DESERT, JUNGLE, ICE;
         static Special of(Biome biome) {
             switch (biome) {
             case MESA:
@@ -57,6 +57,21 @@ class WorldGenerator {
             case FROZEN_OCEAN:
             case OCEAN:
                 return OCEAN;
+            case JUNGLE:
+            case JUNGLE_EDGE:
+            case JUNGLE_HILLS:
+            case MUTATED_JUNGLE:
+            case MUTATED_JUNGLE_EDGE:
+                return JUNGLE;
+            case COLD_BEACH:
+            case FROZEN_RIVER:
+            case ICE_FLATS:
+            case ICE_MOUNTAINS:
+            case MUTATED_ICE_FLATS:
+            case MUTATED_TAIGA_COLD:
+            case TAIGA_COLD:
+            case TAIGA_COLD_HILLS:
+                return ICE;
             default:
                 return NONE;
             }
@@ -67,6 +82,7 @@ class WorldGenerator {
 
     private boolean shouldStop = false;
     boolean generateHotspots = true;
+    boolean specialBiomes = true;
 
     // Async
     final LinkedBlockingQueue<OreChunk> queue = new LinkedBlockingQueue<OreChunk>();
@@ -169,13 +185,9 @@ class WorldGenerator {
                     int y = cy + dy;
                     int z = cz + dz;
                     if (y <= 0) continue;
-                    if (special == Special.NONE) { // Clay
-                        if (y <= 64 && y >= 32) {
-                            if (noises.get(Noise.SPECIAL).abs(x, y, z, 8.0) > 0.65) {
-                                chunk.set(dx, dy, dz, OreType.CLAY);
-                            }
-                        }
-                    } else if (special == Special.DESERT) { // Fossils
+                    if (!specialBiomes) {
+                        // Do nothing
+                    } else if (special == Special.DESERT || special == Special.JUNGLE) { // Fossils
                         if (y >= 32) {
                             if (noises.get(Noise.SPECIAL).abs(x, y, z, 8.0) > 0.65 &&
                                 noises.get(Noise.SPECIAL).at(x, y, z, 1.0) > 0.0) {
@@ -189,6 +201,12 @@ class WorldGenerator {
                                 chunk.set(dx, dy, dz, OreType.SEA_LANTERN);
                             } else if (pri > 0.66) {
                                 chunk.set(dx, dy, dz, OreType.PRISMARINE);
+                            }
+                        }
+                    } else { // Clay
+                        if (y <= 64 && y >= 32) {
+                            if (noises.get(Noise.SPECIAL).abs(x, y, z, 8.0) > 0.65) {
+                                chunk.set(dx, dy, dz, OreType.CLAY);
                             }
                         }
                     }
@@ -206,7 +224,7 @@ class WorldGenerator {
                     }
                     // Dungeon
                     if (y <= 32) {
-                        double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 9.0, 7.0, 9.0);
+                        double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 9.0, 5.0, 9.0);
                         if (dun > 0.64) {
                             chunk.set(dx, dy, dz, OreType.DUNGEON);
                         }
@@ -473,10 +491,12 @@ class WorldGenerator {
         List<MaterialData> floorBlocks;
         if (special == Special.OCEAN) {
             floorBlocks = Arrays.asList(new MaterialData(Material.PRISMARINE, (byte)1), new MaterialData(Material.PRISMARINE, (byte)2));
-        } else if (special == Special.DESERT) {
-            floorBlocks = Arrays.asList(new MaterialData(Material.RED_SANDSTONE));
-        } else if (special == Special.MESA) {
-            floorBlocks = Arrays.asList(new MaterialData(Material.HARD_CLAY));
+        } else if (special == Special.DESERT || special == Special.MESA) {
+            floorBlocks = Arrays.asList(new MaterialData(Material.RED_SANDSTONE), new MaterialData(Material.HARD_CLAY));
+        } else if (special == Special.ICE) {
+            floorBlocks = Arrays.asList(new MaterialData(Material.ICE), new MaterialData(Material.PACKED_ICE));
+        } else if (special == Special.JUNGLE) {
+            floorBlocks = Arrays.asList(new MaterialData(Material.SMOOTH_BRICK), new MaterialData(Material.SMOOTH_BRICK, (byte)1), new MaterialData(Material.SMOOTH_BRICK, (byte)2), new MaterialData(Material.SMOOTH_BRICK, (byte)3));
         } else {
             floorBlocks = Arrays.asList(new MaterialData(Material.COBBLESTONE), new MaterialData(Material.MOSSY_COBBLESTONE));
         }
