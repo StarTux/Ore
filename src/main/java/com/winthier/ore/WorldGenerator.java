@@ -511,7 +511,8 @@ class WorldGenerator {
                     Block laterBlock = foundBlock.getRelative(BlockFace.UP, i + 1);
                     if (!found.contains(laterBlock) &&
                         (laterBlock.getType() == Material.STONE ||
-                         laterBlock.getType() == Material.AIR)) {
+                         laterBlock.getType() == Material.AIR) &&
+                        !OrePlugin.getInstance().isPlayerPlaced(laterBlock)) {
                         laterBlock.setType(Material.AIR, false);
                         addLater.add(laterBlock);
                     }
