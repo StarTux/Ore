@@ -81,8 +81,9 @@ class WorldGenerator {
     final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
 
     private boolean shouldStop = false;
-    boolean generateHotspots = true;
-    boolean specialBiomes = true;
+    boolean enableHotspots = true;
+    boolean enableSpecialBiomes = true;
+    boolean enableDungeons = true;
 
     // Async
     final LinkedBlockingQueue<OreChunk> queue = new LinkedBlockingQueue<OreChunk>();
@@ -164,7 +165,7 @@ class WorldGenerator {
         int goldLevel = 32;
         int emeraldLevel = 0;
 
-        if (generateHotspots) {
+        if (enableHotspots) {
             int x = chunk.getX();
             int y = chunk.getZ();
             diamondLevel = getOreLevel(Noise.DIAMOND, x, y);
@@ -185,7 +186,7 @@ class WorldGenerator {
                     int y = cy + dy;
                     int z = cz + dz;
                     if (y <= 0) continue;
-                    if (!specialBiomes) {
+                    if (!enableSpecialBiomes) {
                         // Do nothing
                     } else if (special == Special.DESERT || special == Special.JUNGLE) { // Fossils
                         if (y >= 32) {
@@ -223,7 +224,7 @@ class WorldGenerator {
                         }
                     }
                     // Dungeon
-                    if (y <= 32) {
+                    if (enableDungeons = y <= 32) {
                         double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 9.0, 5.0, 9.0);
                         if (dun > 0.64) {
                             chunk.set(dx, dy, dz, OreType.DUNGEON);
@@ -526,7 +527,7 @@ class WorldGenerator {
             if (!found.contains(foundBlock.getRelative(BlockFace.DOWN)) &&
                 found.contains(foundBlock.getRelative(BlockFace.UP, 1)) &&
                 found.contains(foundBlock.getRelative(BlockFace.UP, 2))) {
-                if (noises.get(Noise.DUNGEON).at(foundBlock.getX(), foundBlock.getY(), foundBlock.getZ(), 1.0) > 0.32) {
+                if (random.nextDouble() < 0.125) {
                     EntityType et = randomEntityType();
                     foundBlock.getWorld().spawnEntity(foundBlock.getLocation().add(0.5, 1.0, 0.5), et);
                 }

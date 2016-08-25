@@ -3,7 +3,9 @@ worlds:
     Enabled: true
     GenerateHotspots: true
     SpecialBiomes: false
+    Dungeons: false
   Resource:
     Enabled: true
     GenerateHotspots: false
     SpecialBiomes: true
+    Dungeons: true
