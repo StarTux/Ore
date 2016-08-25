@@ -224,7 +224,7 @@ class WorldGenerator {
                         }
                     }
                     // Dungeon
-                    if (enableDungeons = y <= 32) {
+                    if (enableDungeons && y <= 32) {
                         double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 9.0, 5.0, 9.0);
                         if (dun > 0.64) {
                             chunk.set(dx, dy, dz, OreType.DUNGEON);
