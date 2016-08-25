@@ -198,9 +198,9 @@ class WorldGenerator {
                     } else if (special == Special.OCEAN) { // Prismarine
                         if (y < 64) {
                             double pri = noises.get(Noise.SPECIAL).abs(x, y, z, 6.0);
-                            if (pri > 0.79) {
+                            if (pri > 0.80) {
                                 chunk.set(dx, dy, dz, OreType.SEA_LANTERN);
-                            } else if (pri > 0.66) {
+                            } else if (pri > 0.68) {
                                 chunk.set(dx, dy, dz, OreType.PRISMARINE);
                             }
                         }
@@ -213,7 +213,7 @@ class WorldGenerator {
                     }
                     // Slime
                     if (isSlimeChunk && y <= 40) {
-                        if (noises.get(Noise.SLIME).abs(x, y, z, 5.0) > 0.78) {
+                        if (noises.get(Noise.SLIME).abs(x, y, z, 5.0) > 0.79) {
                             chunk.set(dx, dy, dz, OreType.SLIME);
                         }
                     }
