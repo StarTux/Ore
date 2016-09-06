@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -23,6 +24,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.PolarBear;
 import org.bukkit.material.MaterialData;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -39,7 +41,7 @@ class WorldGenerator {
         DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, SPECIAL, DUNGEON, EMERALD, SLIME;
     }
     static public enum Special {
-        NONE, MESA, OCEAN, DESERT, JUNGLE, ICE;
+        NONE, MESA, OCEAN, DESERT, JUNGLE, ICE, MUSHROOM, FOREST, SAVANNA, PLAINS;
         static Special of(Biome biome) {
             switch (biome) {
             case MESA:
@@ -72,6 +74,27 @@ class WorldGenerator {
             case TAIGA_COLD:
             case TAIGA_COLD_HILLS:
                 return ICE;
+            case MUSHROOM_ISLAND:
+            case MUSHROOM_ISLAND_SHORE:
+                return MUSHROOM;
+            case BIRCH_FOREST:
+            case BIRCH_FOREST_HILLS:
+            case FOREST:
+            case FOREST_HILLS:
+            case MUTATED_BIRCH_FOREST:
+            case MUTATED_BIRCH_FOREST_HILLS:
+            case MUTATED_FOREST:
+            case MUTATED_ROOFED_FOREST:
+            case ROOFED_FOREST:
+                return FOREST;
+            case SAVANNA:
+            case MUTATED_SAVANNA:
+            case SAVANNA_ROCK:
+            case MUTATED_SAVANNA_ROCK:
+                return SAVANNA;
+            case PLAINS:
+            case MUTATED_PLAINS:
+                return PLAINS;
             default:
                 return NONE;
             }
@@ -188,7 +211,7 @@ class WorldGenerator {
                     if (y <= 0) continue;
                     if (!enableSpecialBiomes) {
                         // Do nothing
-                    } else if (special == Special.DESERT || special == Special.JUNGLE) { // Fossils
+                    } else if (special == Special.DESERT || special == Special.JUNGLE || special == Special.SAVANNA) { // Fossils
                         if (y >= 32) {
                             if (noises.get(Noise.SPECIAL).abs(x, y, z, 8.0) > 0.65 &&
                                 noises.get(Noise.SPECIAL).at(x, y, z, 1.0) > 0.0) {
@@ -467,6 +490,33 @@ class WorldGenerator {
         }
     }
 
+    static final List<MaterialData> FLOOR_OCEAN = Arrays.asList(
+        new MaterialData(Material.PRISMARINE, (byte)1),
+        new MaterialData(Material.PRISMARINE, (byte)2));
+    static final List<MaterialData> FLOOR_DESERT = Arrays.asList(
+        new MaterialData(Material.MAGMA),
+        new MaterialData(Material.RED_SANDSTONE),
+        new MaterialData(Material.HARD_CLAY));
+    static final List<MaterialData> FLOOR_ICE = Arrays.asList(
+        new MaterialData(Material.ICE),
+        new MaterialData(Material.PACKED_ICE));
+    static final List<MaterialData> FLOOR_JUNGLE = Arrays.asList(
+        new MaterialData(Material.SMOOTH_BRICK),
+        new MaterialData(Material.SMOOTH_BRICK, (byte)1),
+        new MaterialData(Material.SMOOTH_BRICK, (byte)2),
+        new MaterialData(Material.SMOOTH_BRICK, (byte)3));
+    static final List<MaterialData> FLOOR_MUSHROOM = Arrays.asList(
+        new MaterialData(Material.HUGE_MUSHROOM_1, (byte)0), // Pores
+        new MaterialData(Material.HUGE_MUSHROOM_2, (byte)0), // Pores
+        new MaterialData(Material.HUGE_MUSHROOM_1, (byte)15), // Stem
+        new MaterialData(Material.HUGE_MUSHROOM_2, (byte)15), // Stem
+        new MaterialData(Material.HUGE_MUSHROOM_1, (byte)14), // All sides
+        new MaterialData(Material.HUGE_MUSHROOM_1, (byte)14),
+        new MaterialData(Material.HUGE_MUSHROOM_2, (byte)14), // All sides
+        new MaterialData(Material.HUGE_MUSHROOM_2, (byte)14));
+    static final List<MaterialData> FLOOR_DEFAULT = Arrays.asList(
+        new MaterialData(Material.COBBLESTONE),
+        new MaterialData(Material.MOSSY_COBBLESTONE));
     void revealDungeon(Block block) {
         LinkedList<Block> todo = new LinkedList<>();
         Set<Block> found = new HashSet<>();
@@ -491,15 +541,17 @@ class WorldGenerator {
         Special special = Special.of(block.getBiome());
         List<MaterialData> floorBlocks;
         if (special == Special.OCEAN) {
-            floorBlocks = Arrays.asList(new MaterialData(Material.PRISMARINE, (byte)1), new MaterialData(Material.PRISMARINE, (byte)2));
-        } else if (special == Special.DESERT || special == Special.MESA) {
-            floorBlocks = Arrays.asList(new MaterialData(Material.RED_SANDSTONE), new MaterialData(Material.HARD_CLAY));
+            floorBlocks = FLOOR_OCEAN;
+        } else if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
+            floorBlocks = FLOOR_DESERT;
         } else if (special == Special.ICE) {
-            floorBlocks = Arrays.asList(new MaterialData(Material.ICE), new MaterialData(Material.PACKED_ICE));
+            floorBlocks = FLOOR_ICE;
         } else if (special == Special.JUNGLE) {
-            floorBlocks = Arrays.asList(new MaterialData(Material.SMOOTH_BRICK), new MaterialData(Material.SMOOTH_BRICK, (byte)1), new MaterialData(Material.SMOOTH_BRICK, (byte)2), new MaterialData(Material.SMOOTH_BRICK, (byte)3));
+            floorBlocks = FLOOR_JUNGLE;
+        } else if (special == Special.FOREST || special == Special.MUSHROOM) {
+            floorBlocks = FLOOR_MUSHROOM;
         } else {
-            floorBlocks = Arrays.asList(new MaterialData(Material.COBBLESTONE), new MaterialData(Material.MOSSY_COBBLESTONE));
+            floorBlocks = FLOOR_DEFAULT;
         }
         Set<Block> addLater = new HashSet<>();
         for (Block foundBlock: found) {
@@ -528,8 +580,18 @@ class WorldGenerator {
                 found.contains(foundBlock.getRelative(BlockFace.UP, 1)) &&
                 found.contains(foundBlock.getRelative(BlockFace.UP, 2))) {
                 if (random.nextDouble() < 0.125) {
-                    EntityType et = randomEntityType();
-                    foundBlock.getWorld().spawnEntity(foundBlock.getLocation().add(0.5, 1.0, 0.5), et);
+                    Location loc = foundBlock.getLocation().add(0.5, 1.0, 0.5);
+                    if (special == Special.ICE) {
+                        PolarBear polarBear = foundBlock.getWorld().spawn(loc, PolarBear.class);
+                        if (random.nextBoolean()) {
+                            polarBear.setBaby();
+                        } else {
+                            polarBear.setAdult();
+                        }
+                    } else {
+                        EntityType et = randomEntityType(special);
+                        foundBlock.getWorld().spawnEntity(loc, et);
+                    }
                 }
             }
             // Reveal walls
@@ -546,15 +608,27 @@ class WorldGenerator {
         EntityType.ZOMBIE,
         EntityType.SKELETON,
         EntityType.SKELETON,
-        EntityType.CREEPER,
+        EntityType.SPIDER,
+        EntityType.SPIDER,
         EntityType.CREEPER,
         EntityType.WITCH,
         EntityType.CAVE_SPIDER,
         EntityType.SILVERFISH,
-        EntityType.SLIME
+        EntityType.SLIME,
+        EntityType.OCELOT,
+        EntityType.WOLF
     };
-    EntityType randomEntityType() {
-        return ENT[random.nextInt(ENT.length)];
+    final static EntityType[] ENT_DESERT = {
+        EntityType.MAGMA_CUBE,
+        EntityType.PIG_ZOMBIE,
+        EntityType.BLAZE
+    };
+    EntityType randomEntityType(Special special) {
+        if (special == Special.DESERT) {
+            return ENT_DESERT[random.nextInt(ENT_DESERT.length)];
+        } else {
+            return ENT[random.nextInt(ENT.length)];
+        }
     }
 
     void reveal(Block block) {
