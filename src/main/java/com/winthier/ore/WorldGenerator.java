@@ -506,13 +506,7 @@ class WorldGenerator {
         new MaterialData(Material.SMOOTH_BRICK, (byte)2),
         new MaterialData(Material.SMOOTH_BRICK, (byte)3));
     static final List<MaterialData> FLOOR_MUSHROOM = Arrays.asList(
-        new MaterialData(Material.HUGE_MUSHROOM_1, (byte)0), // Pores
-        new MaterialData(Material.HUGE_MUSHROOM_2, (byte)0), // Pores
-        new MaterialData(Material.HUGE_MUSHROOM_1, (byte)15), // Stem
-        new MaterialData(Material.HUGE_MUSHROOM_2, (byte)15), // Stem
         new MaterialData(Material.HUGE_MUSHROOM_1, (byte)14), // All sides
-        new MaterialData(Material.HUGE_MUSHROOM_1, (byte)14),
-        new MaterialData(Material.HUGE_MUSHROOM_2, (byte)14), // All sides
         new MaterialData(Material.HUGE_MUSHROOM_2, (byte)14));
     static final List<MaterialData> FLOOR_DEFAULT = Arrays.asList(
         new MaterialData(Material.COBBLESTONE),
