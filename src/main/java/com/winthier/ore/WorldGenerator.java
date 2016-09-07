@@ -248,8 +248,8 @@ class WorldGenerator {
                     }
                     // Dungeon
                     if (enableDungeons && y <= 32) {
-                        double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 9.0, 5.0, 9.0);
-                        if (dun > 0.64) {
+                        double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 12.0, 6.0, 12.0);
+                        if (dun > 0.63) {
                             chunk.set(dx, dy, dz, OreType.DUNGEON);
                         }
                     }
@@ -618,7 +618,7 @@ class WorldGenerator {
         EntityType.BLAZE
     };
     EntityType randomEntityType(Special special) {
-        if (special == Special.DESERT) {
+        if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
             return ENT_DESERT[random.nextInt(ENT_DESERT.length)];
         } else {
             return ENT[random.nextInt(ENT.length)];
