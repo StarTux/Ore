@@ -38,9 +38,9 @@ public class OrePlugin extends JavaPlugin {
                     generators.put(worldKey, worldGen);
                     worldGen.enableHotspots = section.getBoolean("Hotspots", false);
                     worldGen.enableSpecialBiomes = section.getBoolean("SpecialBiomes", false);
-                    worldGen.enableDungeons = section.getBoolean("Dungeons", false);
+                    worldGen.enableMiniCaves = section.getBoolean("MiniCaves", false);
                     worldGen.start();
-                    getLogger().info("Loaded world " + worldKey + " Hotspots=" + worldGen.enableHotspots + " SpecialBiomes=" + worldGen.enableSpecialBiomes + " Dungeons=" + worldGen.enableDungeons);
+                    getLogger().info("Loaded world " + worldKey + " Hotspots=" + worldGen.enableHotspots + " SpecialBiomes=" + worldGen.enableSpecialBiomes + " MiniCaves=" + worldGen.enableMiniCaves);
                 } else {
                     getLogger().info("World " + worldKey + " is disabled.");
                 }

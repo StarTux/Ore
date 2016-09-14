@@ -38,7 +38,7 @@ class WorldGenerator {
 
     static public enum Noise {
         // Do NOT change the order of this enum!
-        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, SPECIAL, DUNGEON, EMERALD, SLIME;
+        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, SPECIAL, MINI_CAVE, EMERALD, SLIME;
     }
     static public enum Special {
         NONE, MESA, OCEAN, DESERT, JUNGLE, ICE, MUSHROOM, FOREST, SAVANNA, PLAINS;
@@ -106,7 +106,7 @@ class WorldGenerator {
     private boolean shouldStop = false;
     boolean enableHotspots = true;
     boolean enableSpecialBiomes = true;
-    boolean enableDungeons = true;
+    boolean enableMiniCaves = true;
 
     // Async
     final LinkedBlockingQueue<OreChunk> queue = new LinkedBlockingQueue<OreChunk>();
@@ -246,11 +246,11 @@ class WorldGenerator {
                             chunk.set(dx, dy, dz, OreType.COAL_ORE);
                         }
                     }
-                    // Dungeon
-                    if (enableDungeons && y <= 32) {
-                        double dun = noises.get(Noise.DUNGEON).abs(x, y, z, 12.0, 6.0, 12.0);
+                    // Mini Caves
+                    if (enableMiniCaves && y <= 32) {
+                        double dun = noises.get(Noise.MINI_CAVE).abs(x, y, z, 12.0, 6.0, 12.0);
                         if (dun > 0.63) {
-                            chunk.set(dx, dy, dz, OreType.DUNGEON);
+                            chunk.set(dx, dy, dz, OreType.MINI_CAVE);
                         }
                     }
                     // Iron
@@ -511,7 +511,7 @@ class WorldGenerator {
     static final List<MaterialData> FLOOR_DEFAULT = Arrays.asList(
         new MaterialData(Material.COBBLESTONE),
         new MaterialData(Material.MOSSY_COBBLESTONE));
-    void revealDungeon(Block block) {
+    void revealMiniCave(Block block) {
         LinkedList<Block> todo = new LinkedList<>();
         Set<Block> found = new HashSet<>();
         Set<Block> done = new HashSet<>();
@@ -521,7 +521,7 @@ class WorldGenerator {
             if ((doBlock.getType() == Material.STONE ||
                  doBlock.getType() == Material.AIR) &&
                 !OrePlugin.getInstance().isPlayerPlaced(doBlock) &&
-                getOreAt(doBlock) == OreType.DUNGEON) {
+                getOreAt(doBlock) == OreType.MINI_CAVE) {
                 found.add(doBlock);
                 for (BlockFace dir: NBORS) {
                     Block nborBlock = doBlock.getRelative(dir);

@@ -22,7 +22,7 @@ public enum OreType {
     FOSSIL(Material.BONE_BLOCK),
     PRISMARINE(Material.PRISMARINE),
     SEA_LANTERN(Material.SEA_LANTERN),
-    DUNGEON,
+    MINI_CAVE,
     DEBUG,
     ;
 
@@ -41,6 +41,6 @@ public enum OreType {
     }
 
     boolean isHidden() {
-        return this == OreType.DUNGEON;
+        return this == OreType.MINI_CAVE;
     }
 }

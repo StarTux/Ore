@@ -48,9 +48,9 @@ public class OreListener implements Listener {
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
         OreType oreType = worldGen.getOreAt(block);
-        if (oreType == OreType.DUNGEON) {
+        if (oreType == OreType.MINI_CAVE) {
             if (block.getType() == Material.STONE && !plugin.isPlayerPlaced(block)) {
-                worldGen.revealDungeon(block);
+                worldGen.revealMiniCave(block);
                 block.getWorld().playSound(block.getLocation().add(0.5, 0.5, 0.5), Sound.BLOCK_ANVIL_BREAK, 1.0f, 1.0f);
             }
         } else {
