@@ -1,11 +1,6 @@
 worlds:
-  Winthier:
-    Enabled: false
-    GenerateHotspots: true
-    SpecialBiomes: false
-    MiniCaves: false
-  Resource:
+  Example:
     Enabled: false
     GenerateHotspots: false
-    SpecialBiomes: true
+    SpecialBiomes: false
     MiniCaves: false
