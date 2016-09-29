@@ -23,6 +23,7 @@ public enum OreType {
     PRISMARINE(Material.PRISMARINE),
     SEA_LANTERN(Material.SEA_LANTERN),
     MINI_CAVE,
+    DUNGEON,
     DEBUG,
     ;
 

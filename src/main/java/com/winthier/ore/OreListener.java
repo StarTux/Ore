@@ -53,6 +53,10 @@ public class OreListener implements Listener {
                 worldGen.revealMiniCave(block);
                 block.getWorld().playSound(block.getLocation().add(0.5, 0.5, 0.5), Sound.BLOCK_ANVIL_BREAK, 1.0f, 1.0f);
             }
+        } else if (oreType == OreType.DUNGEON) {
+            if (worldGen.revealDungeon(block)) {
+                block.getWorld().playSound(block.getLocation().add(0.5, 0.5, 0.5), Sound.AMBIENT_CAVE, 1.0f, 1.0f);
+            }
         } else {
             worldGen.realize(block);
             for (Rel nbor: nbors) {

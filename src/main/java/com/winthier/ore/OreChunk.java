@@ -75,4 +75,8 @@ class OreChunk {
         long now = System.currentTimeMillis();
         return lastUse + 1000*60*10 < now; // 10 minutes
     }
+
+    Block getBlock(World world) {
+        return world.getBlockAt(x * SIZE, y * SIZE, z * SIZE);
+    }
 }

@@ -27,6 +27,10 @@ class ChunkCoordinate {
         return world.getBlockAt(x * OreChunk.SIZE, y * OreChunk.SIZE, z * OreChunk.SIZE);
     }
 
+    Block getBlockAtY(int y, World world) {
+        return world.getBlockAt(x * OreChunk.SIZE, y, z * OreChunk.SIZE);
+    }
+
     int distanceSquared(ChunkCoordinate other) {
         int dx = other.x - x;
         int dy = other.y - y;

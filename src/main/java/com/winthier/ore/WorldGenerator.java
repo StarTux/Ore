@@ -1,5 +1,6 @@
 package com.winthier.ore;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -15,6 +16,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -35,10 +37,11 @@ class WorldGenerator {
     final Random random = new Random(System.currentTimeMillis());
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
     final long worldSeed;
+    final Set<ChunkCoordinate> revealedDungeons = new HashSet<>();
 
     static public enum Noise {
         // Do NOT change the order of this enum!
-        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, SPECIAL, MINI_CAVE, EMERALD, SLIME;
+        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, SPECIAL, MINI_CAVE, EMERALD, SLIME, DUNGEON;
     }
     static public enum Special {
         NONE, MESA, OCEAN, DESERT, JUNGLE, ICE, MUSHROOM, FOREST, SAVANNA, PLAINS;
@@ -104,9 +107,10 @@ class WorldGenerator {
     final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
 
     private boolean shouldStop = false;
-    boolean enableHotspots = true;
-    boolean enableSpecialBiomes = true;
-    boolean enableMiniCaves = true;
+    boolean enableHotspots = false;
+    boolean enableSpecialBiomes = false;
+    boolean enableMiniCaves = false;
+    boolean enableDungeons = false;
 
     // Async
     final LinkedBlockingQueue<OreChunk> queue = new LinkedBlockingQueue<OreChunk>();
@@ -134,7 +138,7 @@ class WorldGenerator {
         worldSeed = Bukkit.getServer().getWorld(worldName).getSeed();
         Random random = new Random(worldSeed);
         for (Noise noise: Noise.values()) {
-            noises.put(noise, new OpenSimplexNoise(random.nextLong()));
+            noises.put(noise, new OpenSimplexNoise(random.nextLong())); // Not this.random!
         }
     }
 
@@ -176,6 +180,20 @@ class WorldGenerator {
         return tmprnd.nextInt(10) == 0;
     }
 
+    @Value static class DungeonChunk { int x, z; long seed; }
+    /**
+     * @return -1 if this chunk does not contain a dungeon,
+     * positive number for the y level of the dungeon.
+     */
+    int getDungeonLevel(OreChunk chunk) {
+        Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, worldSeed).hashCode());
+        if (rnd.nextBoolean()) {
+            return 5 + rnd.nextInt(43);
+        } else {
+            return 5 + rnd.nextInt(27);
+        }
+    }
+
     void generate(OreChunk chunk) {
         int cx = chunk.getBlockX();
         int cy = chunk.getBlockY();
@@ -201,6 +219,7 @@ class WorldGenerator {
 
         Special special = Special.of(chunk.getBiome());
         boolean isSlimeChunk = isSlimeChunk(chunk);
+        int dungeonLevel = enableDungeons ? getDungeonLevel(chunk) : -1;
 
         for (int dy = 0; dy < OreChunk.SIZE; ++dy) {
             for (int dz = 0; dz < OreChunk.SIZE; ++dz) {
@@ -209,6 +228,12 @@ class WorldGenerator {
                     int y = cy + dy;
                     int z = cz + dz;
                     if (y <= 0) continue;
+                    // Dungeon
+                    if (dungeonLevel > -1 && y >= dungeonLevel && y < dungeonLevel + OreChunk.SIZE) {
+                        chunk.set(dx, dy, dz, OreType.DUNGEON);
+                        continue;
+                    }
+                    // Special Biomes
                     if (!enableSpecialBiomes) {
                         // Do nothing
                     } else if (special == Special.DESERT || special == Special.JUNGLE || special == Special.SAVANNA) { // Fossils
@@ -488,6 +513,50 @@ class WorldGenerator {
         if (mat != null) {
             block.setTypeIdAndData(mat.getItemTypeId(), mat.getData(), false);
         }
+    }
+
+    boolean revealDungeon(Block block) {
+        ChunkCoordinate chunkCoord = ChunkCoordinate.of(block);
+        Block zeroBlock = chunkCoord.getBlockAtY(0, getWorld());
+        chunkCoord = ChunkCoordinate.of(zeroBlock);
+        if (revealedDungeons.contains(chunkCoord)) return false;
+        revealedDungeons.add(chunkCoord);
+        if (OrePlugin.getInstance().isPlayerPlaced(zeroBlock)) return false;
+        OrePlugin.getInstance().setPlayerPlaced(zeroBlock);
+        OreChunk oreChunk = generatedChunks.get(chunkCoord);
+        Special special = Special.of(oreChunk.getBiome());
+        if (oreChunk == null) oreChunk = OreChunk.of(chunkCoord.getBlock(getWorld()));
+        List<Schematic> schematics = new ArrayList<>();
+        String searchTag = special.name().toLowerCase();
+        // Add schematics with matching tag
+        for (Schematic schem: OrePlugin.getInstance().getDungeonSchematics().values()) {
+            if (schem.getTags().contains(searchTag)) schematics.add(schem);
+        }
+        // If empty, add schematics without the default tags, or without any tags
+        if (schematics.isEmpty()) {
+            for (Schematic schem: OrePlugin.getInstance().getDungeonSchematics().values()) {
+                if (schem.getTags().isEmpty()) schematics.add(schem);
+                else if (schem.getTags().contains("default")) schematics.add(schem);
+            }
+        }
+        if (schematics.isEmpty()) {
+            OrePlugin.getInstance().getLogger().warning("No schematics found!");
+            return false;
+        }
+        DungeonChunk dc = new DungeonChunk(chunkCoord.getX(), chunkCoord.getZ(), worldSeed);
+        Random rnd = new Random(dc.hashCode());
+        Schematic schem = schematics.get(rnd.nextInt(schematics.size()));
+        int offsetX = OreChunk.SIZE - schem.getSizeX();
+        int offsetY = OreChunk.SIZE - schem.getSizeY();
+        int offsetZ = OreChunk.SIZE - schem.getSizeZ();
+        if (offsetX > 0) offsetX = rnd.nextInt(offsetX + 1);
+        if (offsetY > 0) offsetY = rnd.nextInt(offsetY + 1);
+        if (offsetZ > 0) offsetZ = rnd.nextInt(offsetZ + 1);
+        int dungeonLevel = getDungeonLevel(oreChunk);
+        Block revealBlock = chunkCoord.getBlockAtY(dungeonLevel, getWorld()).getRelative(offsetX, 0, offsetZ);
+        schem.paste(revealBlock);
+        System.out.println("Dungeon " + schem.getName() + " revealed at " + revealBlock.getX() + "," + revealBlock.getY() + "," + revealBlock.getZ());
+        return true;
     }
 
     static final List<MaterialData> FLOOR_OCEAN = Arrays.asList(

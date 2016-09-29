@@ -4,3 +4,4 @@ worlds:
     GenerateHotspots: false
     SpecialBiomes: false
     MiniCaves: false
+    Dungeons: false

@@ -1,7 +1,15 @@
 package com.winthier.ore;
 
+import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.sk89q.worldedit.bukkit.selections.Selection;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import lombok.Value;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -135,7 +143,50 @@ public class OreCommand implements CommandExecutor {
             OreChunk chunk = OreChunk.of(player.getLocation().getBlock());
             boolean result = worldGen.isSlimeChunk(chunk);
             player.sendMessage("Slime=" + result);
+        } else if (firstArg.equals("dungeon")) {
+            WorldGenerator worldGen = OrePlugin.getInstance().generators.get(player.getWorld().getName());
+            OreChunk chunk = OreChunk.of(player.getLocation().getBlock());
+            int result = worldGen.getDungeonLevel(chunk);
+            player.sendMessage("Dungeon=" + result);
+        } else if (firstArg.equals("copydungeon") && args.length >= 2) {
+            if (player == null) return false;
+            WorldEditPlugin we = getWorldEdit();
+            if (we == null) return true;
+            Selection sel = we.getSelection(player);
+            if (sel == null) {
+                player.sendMessage("Make a selection first!");
+                return true;
+            }
+            Block a = sel.getMinimumPoint().getBlock();
+            Block b = sel.getMaximumPoint().getBlock();
+            List<String> tags = new ArrayList<>();
+            for (int i = 2; i < args.length; ++i) tags.add(args[i]);
+            String name = args[1];
+            Schematic schem = Schematic.copy(a, b, name, tags);
+            schem.save(OrePlugin.getInstance().getDungeonSchematicFile(name));
+            player.sendMessage("Saved dungeon schematic '" + name + "'");
+        } else if (firstArg.equals("pastedungeon") && args.length == 2) {
+            String name = args[1];
+            Schematic schem = Schematic.load(OrePlugin.getInstance().getDungeonSchematicFile(name));
+            if (schem == null) {
+                player.sendMessage("Dungeon schematic not found: " + name);
+                return true;
+            }
+            WorldEditPlugin we = getWorldEdit();
+            if (we == null) return true;
+            Selection sel = we.getSelection(player);
+            if (sel == null) {
+                player.sendMessage("Make a selection first!");
+                return true;
+            }
+            Block a = sel.getMinimumPoint().getBlock();
+            schem.paste(a, true);
+            player.sendMessage("Dungeon " + name + " pasted at WE selection");
         }
         return true;
+    }
+
+    WorldEditPlugin getWorldEdit() {
+        return (WorldEditPlugin)Bukkit.getServer().getPluginManager().getPlugin("WorldEdit");
     }
 }
