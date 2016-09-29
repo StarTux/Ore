@@ -20,6 +20,7 @@ import lombok.Value;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -556,6 +557,7 @@ class WorldGenerator {
         Block revealBlock = chunkCoord.getBlockAtY(dungeonLevel, getWorld()).getRelative(offsetX, 0, offsetZ);
         schem.paste(revealBlock);
         System.out.println("Dungeon " + schem.getName() + " revealed at " + revealBlock.getX() + "," + revealBlock.getY() + "," + revealBlock.getZ());
+        block.getWorld().playSound(revealBlock.getLocation().add((double)offsetX, (double)offsetY, (double)offsetY), Sound.AMBIENT_CAVE, 1.0f, 1.0f);
         return true;
     }
 

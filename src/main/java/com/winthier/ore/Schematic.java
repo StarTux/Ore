@@ -14,6 +14,7 @@ import org.bukkit.block.Chest;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 @Value
@@ -120,11 +121,12 @@ class Schematic {
             }
         }
         if (treasureChests.size() > 0) {
-            int total = 5 + rnd.nextInt(5) -  + rnd.nextInt(5);
+            int total = 9 + rnd.nextInt(9) -  + rnd.nextInt(9);
             for (int j = 0; j < total; ++j) {
                 ItemStack item = randomTreasure(rnd);
                 if (item != null) {
-                    treasureChests.get(rnd.nextInt(treasureChests.size())).getInventory().addItem(item);
+                    Inventory inv = treasureChests.get(rnd.nextInt(treasureChests.size())).getInventory();
+                    inv.setItem(rnd.nextInt(inv.getSize()), item);
                 }
             }
             for (Chest chest: treasureChests) chest.update();
