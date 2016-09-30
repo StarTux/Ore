@@ -165,13 +165,16 @@ public class OreCommand implements CommandExecutor {
             Schematic schem = Schematic.copy(a, b, name, tags);
             schem.save(OrePlugin.getInstance().getDungeonSchematicFile(name));
             player.sendMessage("Saved dungeon schematic '" + name + "'");
-        } else if (firstArg.equals("pastedungeon") && args.length == 2) {
+        } else if (firstArg.equals("pastedungeon") && args.length >= 2) {
             String name = args[1];
             Schematic schem = Schematic.load(OrePlugin.getInstance().getDungeonSchematicFile(name));
             if (schem == null) {
                 player.sendMessage("Dungeon schematic not found: " + name);
                 return true;
             }
+            int rotation = 0;
+            if (args.length >= 3) rotation = Math.abs(Integer.parseInt(args[2]));
+            for (int i = 0; i < rotation; ++i) schem = schem.rotate();
             WorldEditPlugin we = getWorldEdit();
             if (we == null) return true;
             Selection sel = we.getSelection(player);

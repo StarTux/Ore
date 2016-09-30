@@ -547,6 +547,8 @@ class WorldGenerator {
         DungeonChunk dc = new DungeonChunk(chunkCoord.getX(), chunkCoord.getZ(), worldSeed);
         Random rnd = new Random(dc.hashCode());
         Schematic schem = schematics.get(rnd.nextInt(schematics.size()));
+        int rotation = rnd.nextInt(4);
+        for (int i = 0; i < rotation; ++i) schem = schem.rotate();
         int offsetX = OreChunk.SIZE - schem.getSizeX();
         int offsetY = OreChunk.SIZE - schem.getSizeY();
         int offsetZ = OreChunk.SIZE - schem.getSizeZ();
@@ -556,7 +558,7 @@ class WorldGenerator {
         int dungeonLevel = getDungeonLevel(oreChunk);
         Block revealBlock = chunkCoord.getBlockAtY(dungeonLevel, getWorld()).getRelative(offsetX, 0, offsetZ);
         schem.paste(revealBlock);
-        System.out.println("Dungeon " + schem.getName() + " revealed at " + revealBlock.getX() + "," + revealBlock.getY() + "," + revealBlock.getZ());
+        System.out.println("Dungeon " + schem.getName() + " revealed at " + revealBlock.getX() + "," + revealBlock.getY() + "," + revealBlock.getZ() + " rot=" + rotation);
         block.getWorld().playSound(revealBlock.getLocation().add((double)offsetX, (double)offsetY, (double)offsetY), Sound.AMBIENT_CAVE, 1.0f, 1.0f);
         return true;
     }

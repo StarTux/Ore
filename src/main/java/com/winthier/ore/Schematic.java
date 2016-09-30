@@ -10,12 +10,15 @@ import lombok.Value;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Chest;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.material.Directional;
+import org.bukkit.material.MaterialData;
 
 @Value
 class Schematic {
@@ -77,6 +80,9 @@ class Schematic {
                         Material mat = block.getType();
                         switch (mat) {
                         case STONE:
+                        case COBBLESTONE:
+                        case MOSSY_COBBLESTONE:
+                        case SMOOTH_BRICK:
                         case DIRT:
                         case GRAVEL:
                         case SAND:
@@ -223,5 +229,54 @@ class Schematic {
         List<Integer> data = config.getIntegerList("data");
         String name = file.getName().replace(".yml", "");
         return new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data);
+    }
+
+    @SuppressWarnings("deprecation")
+    Schematic rotate() {
+        int newSizeX = sizeZ;
+        int newSizeZ = sizeX;
+        int size = sizeX * sizeY * sizeZ;
+        List<Integer> newIds = new ArrayList<>(size);
+        List<Integer> newData = new ArrayList<>(size);
+        for (int i = 0; i < size; ++i) {
+            newIds.add(0);
+            newData.add(0);
+        }
+        for (int y = 0; y < sizeY; ++y) {
+            for (int z = 0; z < sizeZ; ++z) {
+                for (int x = 0; x < sizeX; ++x) {
+                    // Convert coordinates
+                    int oldIndex = y*sizeX*sizeZ + z*sizeX + x;
+                    int newX = newSizeX - z - 1;
+                    int newZ = x;
+                    int newIndex = y*sizeX*sizeZ + newZ*newSizeX + newX;
+                    // Fetch old values
+                    int aId = ids.get(oldIndex);
+                    int aData = data.get(oldIndex);
+                    // Rotate if necessary
+                    Material mat = Material.getMaterial(aId);
+                    MaterialData matData = mat.getNewData((byte)aData);
+                    if (matData instanceof Directional) {
+                        Directional direct = (Directional)matData;
+                        direct.setFacingDirection(rotate(direct.getFacing()));
+                        aData = matData.getData();
+                    }
+                    // Paste
+                    newIds.set(newIndex, aId);
+                    newData.set(newIndex, aData);
+                }
+            }
+        }
+        return new Schematic(name, tags, newSizeX, sizeY, newSizeZ, newIds, newData);
+    }
+
+    private static BlockFace rotate(final BlockFace face) {
+        switch (face) {
+        case NORTH: return BlockFace.WEST;
+        case EAST:  return BlockFace.NORTH;
+        case SOUTH: return BlockFace.EAST;
+        case WEST:  return BlockFace.SOUTH;
+        default: return face;
+        }
     }
 }
