@@ -2,6 +2,7 @@ package com.winthier.ore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +26,7 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.PolarBear;
@@ -643,11 +645,24 @@ class WorldGenerator {
             }
         }
         found.addAll(addLater);
-        for (Block foundBlock: found) {
+        int spawnerCount = random.nextInt(3);
+        List<Block> blockList = new ArrayList<>(found);
+        Collections.shuffle(blockList, random);
+        for (Block foundBlock: blockList) {
             if (!found.contains(foundBlock.getRelative(BlockFace.DOWN)) &&
                 found.contains(foundBlock.getRelative(BlockFace.UP, 1)) &&
                 found.contains(foundBlock.getRelative(BlockFace.UP, 2))) {
-                if (random.nextDouble() < 0.125) {
+                if (special != Special.ICE && spawnerCount > 0) {
+                    spawnerCount -= 1;
+                    Block spawnerBlock = foundBlock.getRelative(0, 1, 0);
+                    spawnerBlock.setType(Material.MOB_SPAWNER);
+                    CreatureSpawner state = (CreatureSpawner)spawnerBlock.getState();
+                    switch (random.nextInt(3)) {
+                    case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
+                    case 1: state.setSpawnedType(EntityType.SKELETON); break;
+                    case 2: state.setSpawnedType(EntityType.SPIDER); break;
+                    }
+                } else if (random.nextDouble() < 0.125) {
                     Location loc = foundBlock.getLocation().add(0.5, 1.0, 0.5);
                     if (special == Special.ICE) {
                         PolarBear polarBear = foundBlock.getWorld().spawn(loc, PolarBear.class);
