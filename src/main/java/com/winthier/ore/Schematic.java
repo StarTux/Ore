@@ -127,7 +127,7 @@ class Schematic {
             }
         }
         if (treasureChests.size() > 0) {
-            int total = 9 + rnd.nextInt(9) -  + rnd.nextInt(9);
+            int total = 16 + rnd.nextInt(8) - rnd.nextInt(8);
             for (int j = 0; j < total; ++j) {
                 ItemStack item = randomTreasure(rnd);
                 if (item != null) {
@@ -150,11 +150,20 @@ class Schematic {
         return ti(weight, mat, 1, (short)0);
     }
     final static List<TreasureItem> TREASURES = Arrays.asList(
-        ti(100, Material.SULPHUR, 16),
-        ti(100, Material.REDSTONE, 16),
-        ti(100, Material.BONE, 16),
-        ti(100, Material.COAL, 16),
-        ti(100, Material.STRING, 16),
+        ti(50, Material.SULPHUR, 16),
+        ti(50, Material.REDSTONE, 16),
+        ti(50, Material.BONE, 16),
+        ti(50, Material.COAL, 16),
+        ti(50, Material.STRING, 16),
+        ti(50, Material.ARROW, 16),
+
+        ti(50, Material.BEETROOT_SEEDS, 16),
+        ti(50, Material.MELON_SEEDS, 16),
+        ti(50, Material.PUMPKIN_SEEDS, 16),
+        ti(50, Material.SEEDS, 16),
+        ti(50, Material.CARROT, 16),
+        ti(50, Material.POTATO, 16),
+        ti(50, Material.EGG, 16),
 
         ti(25, Material.IRON_INGOT, 8),
         ti(25, Material.GOLD_INGOT, 8),
