@@ -645,22 +645,26 @@ class WorldGenerator {
             }
         }
         found.addAll(addLater);
-        int spawnerCount = random.nextInt(3);
+        int spawnerCount = special != Special.ICE ? random.nextInt(3) : 0;
         List<Block> blockList = new ArrayList<>(found);
         Collections.shuffle(blockList, random);
         for (Block foundBlock: blockList) {
             if (!found.contains(foundBlock.getRelative(BlockFace.DOWN)) &&
                 found.contains(foundBlock.getRelative(BlockFace.UP, 1)) &&
                 found.contains(foundBlock.getRelative(BlockFace.UP, 2))) {
-                if (special != Special.ICE && spawnerCount > 0) {
+                if (spawnerCount > 0) {
                     spawnerCount -= 1;
-                    Block spawnerBlock = foundBlock.getRelative(0, 1, 0);
+                    Block spawnerBlock = foundBlock.getRelative(0, 1 + random.nextInt(2), 0);
                     spawnerBlock.setType(Material.MOB_SPAWNER);
                     CreatureSpawner state = (CreatureSpawner)spawnerBlock.getState();
-                    switch (random.nextInt(3)) {
-                    case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
-                    case 1: state.setSpawnedType(EntityType.SKELETON); break;
-                    case 2: state.setSpawnedType(EntityType.SPIDER); break;
+                    if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
+                        state.setSpawnedType(EntityType.BLAZE);
+                    } else {
+                        switch (random.nextInt(3)) {
+                        case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
+                        case 1: state.setSpawnedType(EntityType.SKELETON); break;
+                        case 2: state.setSpawnedType(EntityType.SPIDER); break;
+                        }
                     }
                 } else if (random.nextDouble() < 0.125) {
                     Location loc = foundBlock.getLocation().add(0.5, 1.0, 0.5);
