@@ -17,8 +17,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.material.Attachable;
 import org.bukkit.material.Directional;
 import org.bukkit.material.MaterialData;
+import org.bukkit.material.Vine;
 
 @Value
 class Schematic {
@@ -26,6 +28,7 @@ class Schematic {
     List<String> tags;
     int sizeX, sizeY, sizeZ;
     List<Integer> ids, data;
+    final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
 
     @SuppressWarnings("deprecation")
     static Schematic copy(Block a, Block b, String name, List<String> tags) {
@@ -126,7 +129,7 @@ class Schematic {
                 }
             }
         }
-        if (treasureChests.size() > 0) {
+        if (!force && treasureChests.size() > 0) {
             int total = 16 + rnd.nextInt(8) - rnd.nextInt(8);
             for (int j = 0; j < total; ++j) {
                 ItemStack item = randomTreasure(rnd);
@@ -265,10 +268,31 @@ class Schematic {
                     // Rotate if necessary
                     Material mat = Material.getMaterial(aId);
                     MaterialData matData = mat.getNewData((byte)aData);
-                    if (matData instanceof Directional) {
+                    if (matData instanceof Vine) {
+                        Vine vine = (Vine)matData;
+                        Vine vine2 = new Vine();
+                        for (BlockFace face: NBORS) {
+                            if (vine.isOnFace(face)) {
+                                if (needsRotation(face)) {
+                                    vine2.putOnFace(rotate(face).getOppositeFace());
+                                } else {
+                                    vine2.putOnFace(face);
+                                }
+                            }
+                        }
+                        aData = vine2.getData();
+                    } else if (matData instanceof Attachable) {
+                        Attachable attach = (Attachable)matData;
+                        if (needsRotation(attach.getAttachedFace())) {
+                            attach.setFacingDirection(rotate(attach.getAttachedFace()));
+                            aData = matData.getData();
+                        }
+                    } else if (matData instanceof Directional) {
                         Directional direct = (Directional)matData;
-                        direct.setFacingDirection(rotate(direct.getFacing()));
-                        aData = matData.getData();
+                        if (needsRotation(direct.getFacing())) {
+                            direct.setFacingDirection(rotate(direct.getFacing()));
+                            aData = matData.getData();
+                        }
                     }
                     // Paste
                     newIds.set(newIndex, aId);
@@ -277,6 +301,18 @@ class Schematic {
             }
         }
         return new Schematic(name, tags, newSizeX, sizeY, newSizeZ, newIds, newData);
+    }
+
+    private static boolean needsRotation(final BlockFace face) {
+        switch (face) {
+        case NORTH:
+        case EAST:
+        case SOUTH:
+        case WEST:
+            return true;
+        default:
+            return false;
+        }
     }
 
     private static BlockFace rotate(final BlockFace face) {
