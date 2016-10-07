@@ -20,6 +20,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.Attachable;
 import org.bukkit.material.Directional;
 import org.bukkit.material.MaterialData;
+import org.bukkit.material.Mushroom;
 import org.bukkit.material.Vine;
 
 @Value
@@ -284,6 +285,19 @@ class Schematic {
                             }
                         }
                         aData = vine2.getData();
+                    } else if (matData instanceof Mushroom) {
+                        Mushroom mush = (Mushroom)matData;
+                        if (!mush.isStem()) {
+                            Mushroom mush2 = new Mushroom(mush.getItemType());
+                            for (BlockFace face: mush.getPaintedFaces()) {
+                                if (needsRotation(face)) {
+                                    mush2.setFacePainted(rotate(face).getOppositeFace(), true);
+                                } else {
+                                    mush2.setFacePainted(face, true);
+                                }
+                            }
+                            aData = mush2.getData();
+                        }
                     } else if (matData instanceof Attachable) {
                         Attachable attach = (Attachable)matData;
                         if (needsRotation(attach.getAttachedFace())) {
