@@ -175,6 +175,7 @@ class Schematic {
         ti(25, Material.EMERALD, 1),
         ti(25, Material.NAME_TAG),
         ti(25, Material.GOLDEN_APPLE),
+        ti(25, Material.SADDLE),
         
         ti(10, Material.IRON_BARDING),
         ti(10, Material.GOLD_BARDING),
@@ -193,7 +194,9 @@ class Schematic {
         ti(1, Material.RECORD_9),
         ti(1, Material.RECORD_10),
         ti(1, Material.RECORD_11),
-        ti(1, Material.RECORD_12)
+        ti(1, Material.RECORD_12),
+
+        ti(1, Material.ELYTRA)
         );
     ItemStack randomTreasure(Random rnd) {
         int total = 0;
