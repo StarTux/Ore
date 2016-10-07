@@ -646,6 +646,7 @@ class WorldGenerator {
         }
         found.addAll(addLater);
         int spawnerCount = special != Special.ICE ? random.nextInt(3) : 0;
+        int mobCount = 1 + random.nextInt(5);
         List<Block> blockList = new ArrayList<>(found);
         Collections.shuffle(blockList, random);
         for (Block foundBlock: blockList) {
@@ -660,24 +661,32 @@ class WorldGenerator {
                     if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
                         state.setSpawnedType(EntityType.BLAZE);
                     } else {
-                        switch (random.nextInt(3)) {
+                        switch (random.nextInt(5)) {
                         case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
                         case 1: state.setSpawnedType(EntityType.SKELETON); break;
                         case 2: state.setSpawnedType(EntityType.SPIDER); break;
+                        case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
+                        case 4: state.setSpawnedType(EntityType.CREEPER); break;
                         }
                     }
-                } else if (random.nextDouble() < 0.125) {
-                    Location loc = foundBlock.getLocation().add(0.5, 1.0, 0.5);
+                } else if (mobCount > 0) {
+                    mobCount -= 1;
+                    Block baseBlock = foundBlock.getRelative(0, 1, 0);
+                    Location loc = baseBlock.getLocation().add(0.5, 0.0, 0.5);
                     if (special == Special.ICE) {
-                        PolarBear polarBear = foundBlock.getWorld().spawn(loc, PolarBear.class);
-                        if (random.nextBoolean()) {
-                            polarBear.setBaby();
-                        } else {
-                            polarBear.setAdult();
+                        if (miniCaveHasSpaceForFatMob(found, baseBlock)) {
+                            PolarBear polarBear = foundBlock.getWorld().spawn(loc, PolarBear.class);
+                            if (random.nextBoolean()) {
+                                polarBear.setBaby();
+                            } else {
+                                polarBear.setAdult();
+                            }
                         }
                     } else {
                         EntityType et = randomEntityType(special);
-                        foundBlock.getWorld().spawnEntity(loc, et);
+                        if (et != EntityType.SPIDER || miniCaveHasSpaceForFatMob(found, baseBlock)) {
+                            foundBlock.getWorld().spawnEntity(loc, et);
+                        }
                     }
                 }
             }
@@ -687,6 +696,14 @@ class WorldGenerator {
                 if (!found.contains(nbor)) realize(nbor);
             }
         }
+    }
+
+    final static BlockFace[] HOR = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.NORTH_WEST, BlockFace.NORTH_EAST, BlockFace.SOUTH_EAST, BlockFace.SOUTH_WEST};
+    private boolean miniCaveHasSpaceForFatMob(Set<Block> found, Block block) {
+        for (BlockFace face: HOR) {
+            if (!found.contains(block.getRelative(face))) return false;
+        }
+        return true;
     }
 
     final static EntityType[] ENT = {
