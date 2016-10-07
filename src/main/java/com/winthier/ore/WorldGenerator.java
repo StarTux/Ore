@@ -190,11 +190,7 @@ class WorldGenerator {
      */
     int getDungeonLevel(OreChunk chunk) {
         Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, worldSeed).hashCode());
-        if (rnd.nextBoolean()) {
-            return 5 + rnd.nextInt(43);
-        } else {
-            return 5 + rnd.nextInt(27);
-        }
+        return 5 + rnd.nextInt(43);
     }
 
     void generate(OreChunk chunk) {
