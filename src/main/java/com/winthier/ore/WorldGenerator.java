@@ -514,17 +514,17 @@ class WorldGenerator {
         }
     }
 
-    boolean revealDungeon(Block block) {
+    Schematic.PasteResult revealDungeon(Block block) {
         ChunkCoordinate chunkCoord = ChunkCoordinate.of(block);
         Block zeroBlock = chunkCoord.getBlockAtY(0, getWorld());
         chunkCoord = ChunkCoordinate.of(zeroBlock);
-        if (revealedDungeons.contains(chunkCoord)) return false;
+        if (revealedDungeons.contains(chunkCoord)) return null;
         revealedDungeons.add(chunkCoord);
-        if (OrePlugin.getInstance().isPlayerPlaced(zeroBlock)) return false;
+        if (OrePlugin.getInstance().isPlayerPlaced(zeroBlock)) return null;
         OrePlugin.getInstance().setPlayerPlaced(zeroBlock);
         OreChunk oreChunk = generatedChunks.get(chunkCoord);
-        Special special = Special.of(oreChunk.getBiome());
         if (oreChunk == null) oreChunk = OreChunk.of(chunkCoord.getBlock(getWorld()));
+        Special special = Special.of(oreChunk.getBiome());
         List<Schematic> schematics = new ArrayList<>();
         String searchTag = special.name().toLowerCase();
         // Add schematics with matching tag
@@ -540,7 +540,7 @@ class WorldGenerator {
         }
         if (schematics.isEmpty()) {
             OrePlugin.getInstance().getLogger().warning("No schematics found!");
-            return false;
+            return null;
         }
         DungeonChunk dc = new DungeonChunk(chunkCoord.getX(), chunkCoord.getZ(), worldSeed);
         Random rnd = new Random(dc.hashCode());
@@ -555,11 +555,11 @@ class WorldGenerator {
         if (offsetZ > 0) offsetZ = rnd.nextInt(offsetZ + 1);
         int dungeonLevel = getDungeonLevel(oreChunk);
         Block revealBlock = chunkCoord.getBlockAtY(dungeonLevel, getWorld()).getRelative(offsetX, 0, offsetZ);
-        schem.paste(revealBlock);
+        Schematic.PasteResult pasteResult = schem.paste(revealBlock);
         Block centerBlock = revealBlock.getRelative(schem.getSizeX()/2, schem.getSizeY()/2, schem.getSizeZ()/2);
         OrePlugin.getInstance().getLogger().info("Dungeon " + schem.getName() + " revealed at " + centerBlock.getX() + "," + centerBlock.getY() + "," + centerBlock.getZ() + " rot=" + rotation);
         block.getWorld().playSound(centerBlock.getLocation().add(0.5, 0.5, 0.5), Sound.AMBIENT_CAVE, 1.0f, 1.0f);
-        return true;
+        return pasteResult;
     }
 
     static final List<MaterialData> FLOOR_OCEAN = Arrays.asList(

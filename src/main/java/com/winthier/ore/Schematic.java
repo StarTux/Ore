@@ -24,12 +24,18 @@ import org.bukkit.material.Mushroom;
 import org.bukkit.material.Vine;
 
 @Value
-class Schematic {
+public class Schematic {
     String name;
     List<String> tags;
     int sizeX, sizeY, sizeZ;
     List<Integer> ids, data;
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
+
+    @Value static class PasteResult {
+        Schematic schematic;
+        Block sourceBlock;
+        List<Chest> treasureChests;
+    }
 
     @SuppressWarnings("deprecation")
     static Schematic copy(Block a, Block b, String name, List<String> tags) {
@@ -58,11 +64,11 @@ class Schematic {
         return new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data);
     }
 
-    void paste(Block a) {
-        paste(a, false);
+    PasteResult paste(Block a) {
+        return paste(a, false);
     }
 
-    void paste(Block a, boolean force) {
+    PasteResult paste(Block a, boolean force) {
         int xa = a.getX();
         int ya = a.getY();
         int za = a.getZ();
@@ -141,6 +147,7 @@ class Schematic {
             }
             for (Chest chest: treasureChests) chest.update();
         }
+        return new PasteResult(this, a, treasureChests);
     }
 
     @Value static class TreasureItem { int weight; ItemStack item; }

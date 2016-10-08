@@ -1,5 +1,6 @@
 package com.winthier.ore;
 
+import com.winthier.ore.event.DungeonRevealEvent;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +55,11 @@ public class OreListener implements Listener {
                 block.getWorld().playSound(block.getLocation().add(0.5, 0.5, 0.5), Sound.BLOCK_ANVIL_BREAK, 1.0f, 1.0f);
             }
         } else if (oreType == OreType.DUNGEON) {
-            worldGen.revealDungeon(block);
+            Schematic.PasteResult pasteResult = worldGen.revealDungeon(block);
+            if (pasteResult != null) {
+                DungeonRevealEvent dungeonRevealEvent = new DungeonRevealEvent(event.getPlayer(), pasteResult.getSchematic(), pasteResult.getSourceBlock(), pasteResult.getTreasureChests());
+                plugin.getServer().getPluginManager().callEvent(dungeonRevealEvent);
+            }
         } else {
             worldGen.realize(block);
             for (Rel nbor: nbors) {
