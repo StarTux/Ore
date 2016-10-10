@@ -5,3 +5,4 @@ worlds:
     SpecialBiomes: false
     MiniCaves: false
     Dungeons: false
+    Seed: 1234567890

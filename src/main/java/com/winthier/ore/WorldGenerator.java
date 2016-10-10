@@ -27,6 +27,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.PolarBear;
@@ -110,10 +111,21 @@ class WorldGenerator {
     final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
 
     private boolean shouldStop = false;
-    boolean enableHotspots = false;
-    boolean enableSpecialBiomes = false;
-    boolean enableMiniCaves = false;
-    boolean enableDungeons = false;
+    private boolean enableHotspots = false;
+    private boolean enableSpecialBiomes = false;
+    private boolean enableMiniCaves = false;
+    private boolean enableDungeons = false;
+    private long seed; // Defaults to world seed
+
+     // Call once!
+    void configure(ConfigurationSection config) {
+        enableHotspots = config.getBoolean("Hotspots", enableHotspots);
+        enableSpecialBiomes = config.getBoolean("SpecialBiomes", enableSpecialBiomes);
+        enableMiniCaves = config.getBoolean("MiniCaves", enableMiniCaves);
+        enableDungeons = config.getBoolean("Dungeons", enableDungeons);
+        seed = config.getLong("Seed", seed);
+        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + enableDungeons + " Seed=" + seed);
+    }
 
     // Async
     final LinkedBlockingQueue<OreChunk> queue = new LinkedBlockingQueue<OreChunk>();
@@ -139,7 +151,8 @@ class WorldGenerator {
     WorldGenerator(String worldName) {
         this.worldName = worldName;
         worldSeed = Bukkit.getServer().getWorld(worldName).getSeed();
-        Random random = new Random(worldSeed);
+        seed = worldSeed;
+        Random random = new Random(seed);
         for (Noise noise: Noise.values()) {
             noises.put(noise, new OpenSimplexNoise(random.nextLong())); // Not this.random!
         }
@@ -189,7 +202,7 @@ class WorldGenerator {
      * positive number for the y level of the dungeon.
      */
     int getDungeonLevel(OreChunk chunk) {
-        Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, worldSeed).hashCode());
+        Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, seed).hashCode());
         return 5 + rnd.nextInt(43);
     }
 
@@ -542,7 +555,7 @@ class WorldGenerator {
             OrePlugin.getInstance().getLogger().warning("No schematics found!");
             return null;
         }
-        DungeonChunk dc = new DungeonChunk(chunkCoord.getX(), chunkCoord.getZ(), worldSeed);
+        DungeonChunk dc = new DungeonChunk(chunkCoord.getX(), chunkCoord.getZ(), seed);
         Random rnd = new Random(dc.hashCode());
         Schematic schem = schematics.get(rnd.nextInt(schematics.size()));
         int rotation = rnd.nextInt(4);
