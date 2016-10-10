@@ -6,3 +6,4 @@ worlds:
     MiniCaves: false
     Dungeons: false
     Seed: 1234567890
+    TNT: 0

@@ -28,6 +28,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.PolarBear;
@@ -116,6 +117,8 @@ class WorldGenerator {
     private boolean enableMiniCaves = false;
     private boolean enableDungeons = false;
     private long seed; // Defaults to world seed
+    private long tnt = 0;
+    private long tntCountdown = -1;
 
      // Call once!
     void configure(ConfigurationSection config) {
@@ -124,6 +127,7 @@ class WorldGenerator {
         enableMiniCaves = config.getBoolean("MiniCaves", enableMiniCaves);
         enableDungeons = config.getBoolean("Dungeons", enableDungeons);
         seed = config.getLong("Seed", seed);
+        tnt = config.getLong("TNT", tnt);
         OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + enableDungeons + " Seed=" + seed);
     }
 
@@ -400,7 +404,30 @@ class WorldGenerator {
         }
     }
 
+    void blowTNT() {
+        World world = getWorld();
+        if (world == null) return;
+        List<Entity> entities = world.getEntities();
+        Collections.shuffle(entities, random);
+        for (Entity e: entities) {
+            if (!(e instanceof org.bukkit.entity.Monster)) continue;
+            Location loc = e.getLocation();
+            Block block = loc.getBlock();
+            int highest = world.getHighestBlockYAt(block.getX(), block.getZ());
+            if (highest <= block.getY()) continue;
+            world.spawnEntity(loc, EntityType.PRIMED_TNT);
+            return;
+        }
+    }
+
     void syncRun() {
+        if (tnt > 0) {
+            if (tntCountdown == 0) {
+                blowTNT();
+            }
+            tntCountdown -= 1;
+            if (tntCountdown < 0) tntCountdown = tnt * 20;
+        }
         if (playerList.isEmpty()) {
             // Clean player map
             for (Iterator<Map.Entry<UUID, PlayerData> > it = playerMap.entrySet().iterator(); it.hasNext();) {
