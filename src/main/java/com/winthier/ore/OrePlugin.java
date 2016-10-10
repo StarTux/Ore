@@ -87,13 +87,17 @@ public class OrePlugin extends JavaPlugin {
             for (File file: dir.listFiles()) {
                 String name = file.getName();
                 if (name.endsWith(".yml")) {
-                    getLogger().info("Loading dungeon schematic " + name);
-                    Schematic schem = Schematic.load(file);
-                    if (schem != null) {
-                        dungeonSchematics.put(name.substring(0, name.length() - 4), schem);
+                    try {
+                        Schematic schem = Schematic.load(file);
+                        if (schem != null) {
+                            dungeonSchematics.put(name.substring(0, name.length() - 4), schem);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
             }
+            getLogger().info("" + dungeonSchematics.size() + " dungeon schematics loaded");
         }
         return dungeonSchematics;
     }
