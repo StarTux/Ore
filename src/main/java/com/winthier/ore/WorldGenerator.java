@@ -416,6 +416,7 @@ class WorldGenerator {
             int highest = world.getHighestBlockYAt(block.getX(), block.getZ());
             if (highest <= block.getY()) continue;
             world.spawnEntity(loc, EntityType.PRIMED_TNT);
+            OrePlugin.getInstance().getLogger().info("Exploded TNT in " + world.getName() + " at " + block.getX() + " " + block.getY() + " " + block.getZ());
             return;
         }
     }
