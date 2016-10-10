@@ -128,7 +128,7 @@ class WorldGenerator {
         enableDungeons = config.getBoolean("Dungeons", enableDungeons);
         seed = config.getLong("Seed", seed);
         tnt = config.getLong("TNT", tnt);
-        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + enableDungeons + " Seed=" + seed);
+        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + enableDungeons + " TNT=" + tnt + " Seed=" + seed);
     }
 
     // Async
