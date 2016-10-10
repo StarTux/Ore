@@ -29,6 +29,7 @@ public class Schematic {
     List<String> tags;
     int sizeX, sizeY, sizeZ;
     List<Integer> ids, data;
+    int rotation;
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
 
     @Value static class PasteResult {
@@ -61,7 +62,7 @@ public class Schematic {
                 }
             }
         }
-        return new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data);
+        return new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data, 0);
     }
 
     PasteResult paste(Block a) {
@@ -251,7 +252,7 @@ public class Schematic {
         List<Integer> ids = config.getIntegerList("ids");
         List<Integer> data = config.getIntegerList("data");
         String name = file.getName().replace(".yml", "");
-        return new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data);
+        return new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data, 0);
     }
 
     @SuppressWarnings("deprecation")
@@ -324,7 +325,7 @@ public class Schematic {
                 }
             }
         }
-        return new Schematic(name, tags, newSizeX, sizeY, newSizeZ, newIds, newData);
+        return new Schematic(name, tags, newSizeX, sizeY, newSizeZ, newIds, newData, rotation + 1);
     }
 
     private static boolean needsRotation(final BlockFace face) {
