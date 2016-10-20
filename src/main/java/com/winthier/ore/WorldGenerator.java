@@ -115,7 +115,7 @@ class WorldGenerator {
     private boolean enableHotspots = false;
     private boolean enableSpecialBiomes = false;
     private boolean enableMiniCaves = false;
-    private boolean enableDungeons = false;
+    private int dungeonChance = 0;
     private long seed; // Defaults to world seed
     private long tnt = 0;
     private long tntCountdown = -1;
@@ -125,10 +125,10 @@ class WorldGenerator {
         enableHotspots = config.getBoolean("Hotspots", enableHotspots);
         enableSpecialBiomes = config.getBoolean("SpecialBiomes", enableSpecialBiomes);
         enableMiniCaves = config.getBoolean("MiniCaves", enableMiniCaves);
-        enableDungeons = config.getBoolean("Dungeons", enableDungeons);
+        dungeonChance = config.getInt("Dungeons", dungeonChance);
         seed = config.getLong("Seed", seed);
         tnt = config.getLong("TNT", tnt);
-        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + enableDungeons + " TNT=" + tnt + " Seed=" + seed);
+        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " TNT=" + tnt + " Seed=" + seed);
     }
 
     // Async
@@ -207,7 +207,9 @@ class WorldGenerator {
      */
     int getDungeonLevel(OreChunk chunk) {
         Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, seed).hashCode());
-        return 5 + rnd.nextInt(43);
+        int result = 5 + rnd.nextInt(43);
+        if (dungeonChance < 100 && rnd.nextInt(100) >= dungeonChance) return -1;
+        return result;
     }
 
     void generate(OreChunk chunk) {
@@ -235,7 +237,7 @@ class WorldGenerator {
 
         Special special = Special.of(chunk.getBiome());
         boolean isSlimeChunk = isSlimeChunk(chunk);
-        int dungeonLevel = enableDungeons ? getDungeonLevel(chunk) : -1;
+        int dungeonLevel = dungeonChance > 0 ? getDungeonLevel(chunk) : -1;
 
         for (int dy = 0; dy < OreChunk.SIZE; ++dy) {
             for (int dz = 0; dz < OreChunk.SIZE; ++dz) {

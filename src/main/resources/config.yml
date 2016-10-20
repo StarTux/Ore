@@ -4,6 +4,6 @@ worlds:
     GenerateHotspots: false
     SpecialBiomes: false
     MiniCaves: false
-    Dungeons: false
+    Dungeons: 50
     Seed: 1234567890
     TNT: 0
