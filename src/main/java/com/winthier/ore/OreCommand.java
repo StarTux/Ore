@@ -28,9 +28,6 @@ public class OreCommand implements CommandExecutor {
         if (firstArg.equals("reload")) {
             OrePlugin.getInstance().loadWorlds();
             sender.sendMessage("Config reloaded");
-        } else if (firstArg.equals("debug")) {
-            WorldGenerator worldGen = OrePlugin.getInstance().generators.get(player.getWorld().getName());
-            worldGen.debug(player);
         } else if (firstArg.equals("test")) {
             double featureSize = 16.0;
             if (args.length >= 2) featureSize = Double.parseDouble(args[1]);
@@ -185,6 +182,15 @@ public class OreCommand implements CommandExecutor {
             Block a = sel.getMinimumPoint().getBlock();
             schem.paste(a, true);
             player.sendMessage("Dungeon " + name + " pasted at WE selection");
+        } else if (firstArg.equals("debug") && args.length == 2) {
+            String name = args[1];
+            WorldGenerator worldGen = OrePlugin.getInstance().generators.get(name);
+            if (worldGen == null) {
+                sender.sendMessage("World generator not found: " + name);
+                return true;
+            }
+            worldGen.debug = !worldGen.debug;
+            sender.sendMessage("Debug mode in " + worldGen.worldName + (worldGen.debug ? " enabled" : " disabled"));
         }
         return true;
     }

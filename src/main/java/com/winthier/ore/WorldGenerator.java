@@ -121,7 +121,7 @@ class WorldGenerator {
     private long tnt = 0;
     private long tntCountdown = -1;
     private int spawnerLimit = 0;
-    private boolean debug = false;
+    boolean debug = false;
 
      // Call once!
     void configure(ConfigurationSection config) {
@@ -149,13 +149,6 @@ class WorldGenerator {
     final Set<ChunkCoordinate> scheduledChunks = new HashSet<>();
     final LinkedList<UUID> playerList = new LinkedList<>();
     final Map<UUID, PlayerData> playerMap = new HashMap<>();
-
-    void debug(Player player) {
-        player.sendMessage("Generated Chunks " + generatedChunks.size());
-        player.sendMessage("Scheduled Chunks " + scheduledChunks.size());
-        player.sendMessage("Player List " + playerList.size());
-        player.sendMessage("Player Map " + playerMap.size());
-    }
 
     WorldGenerator(String worldName) {
         this.worldName = worldName;
