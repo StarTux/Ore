@@ -118,8 +118,6 @@ class WorldGenerator {
     private boolean enableMiniCaves = false;
     private int dungeonChance = 0;
     private long seed; // Defaults to world seed
-    private long tnt = 0;
-    private long tntCountdown = -1;
     private int spawnerLimit = 0;
     boolean debug = false;
 
@@ -130,10 +128,9 @@ class WorldGenerator {
         enableMiniCaves = config.getBoolean("MiniCaves", enableMiniCaves);
         dungeonChance = config.getInt("Dungeons", dungeonChance);
         seed = config.getLong("Seed", seed);
-        tnt = config.getLong("TNT", tnt);
         spawnerLimit = config.getInt("SpawnerLimit", spawnerLimit);
         debug = config.getBoolean("Debug", debug);
-        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " TNT=" + tnt + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
+        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
     }
 
     // Async
@@ -404,33 +401,7 @@ class WorldGenerator {
         }
     }
 
-    void blowTNT() {
-        World world = getWorld();
-        if (world == null) return;
-        List<Entity> entities = world.getEntities();
-        Collections.shuffle(entities, random);
-        for (Entity e: entities) {
-            if (!(e instanceof org.bukkit.entity.Monster)) continue;
-            Location loc = e.getLocation();
-            Block block = loc.getBlock();
-            int highest = world.getHighestBlockYAt(block.getX(), block.getZ());
-            if (highest <= block.getY()) continue;
-            world.spawnEntity(loc, EntityType.PRIMED_TNT);
-            if (debug) {
-                OrePlugin.getInstance().getLogger().info("Exploded TNT in " + world.getName() + " at " + block.getX() + " " + block.getY() + " " + block.getZ());
-            }
-            return;
-        }
-    }
-
     void syncRun() {
-        if (tnt > 0) {
-            if (tntCountdown == 0) {
-                blowTNT();
-            }
-            tntCountdown -= 1;
-            if (tntCountdown < 0) tntCountdown = tnt * 20;
-        }
         if (playerList.isEmpty()) {
             // Clean player map
             for (Iterator<Map.Entry<UUID, PlayerData> > it = playerMap.entrySet().iterator(); it.hasNext();) {

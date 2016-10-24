@@ -6,6 +6,5 @@ worlds:
     MiniCaves: false
     Dungeons: 50
     Seed: 1234567890
-    TNT: 0
     SpawnerLimit: 0
     Debug: true
