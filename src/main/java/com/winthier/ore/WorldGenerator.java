@@ -43,6 +43,7 @@ class WorldGenerator {
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
     final long worldSeed;
     final Set<ChunkCoordinate> revealedDungeons = new HashSet<>();
+    final Map<Block, Integer> spawnerSpawns = new HashMap<>();
 
     static public enum Noise {
         // Do NOT change the order of this enum!
@@ -119,6 +120,8 @@ class WorldGenerator {
     private long seed; // Defaults to world seed
     private long tnt = 0;
     private long tntCountdown = -1;
+    private int spawnerLimit = 0;
+    private boolean debug = false;
 
      // Call once!
     void configure(ConfigurationSection config) {
@@ -128,7 +131,9 @@ class WorldGenerator {
         dungeonChance = config.getInt("Dungeons", dungeonChance);
         seed = config.getLong("Seed", seed);
         tnt = config.getLong("TNT", tnt);
-        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " TNT=" + tnt + " Seed=" + seed);
+        spawnerLimit = config.getInt("SpawnerLimit", spawnerLimit);
+        debug = config.getBoolean("Debug", debug);
+        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " TNT=" + tnt + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
     }
 
     // Async
@@ -418,7 +423,9 @@ class WorldGenerator {
             int highest = world.getHighestBlockYAt(block.getX(), block.getZ());
             if (highest <= block.getY()) continue;
             world.spawnEntity(loc, EntityType.PRIMED_TNT);
-            OrePlugin.getInstance().getLogger().info("Exploded TNT in " + world.getName() + " at " + block.getX() + " " + block.getY() + " " + block.getZ());
+            if (debug) {
+                OrePlugin.getInstance().getLogger().info("Exploded TNT in " + world.getName() + " at " + block.getX() + " " + block.getY() + " " + block.getZ());
+            }
             return;
         }
     }
@@ -786,6 +793,27 @@ class WorldGenerator {
         for (Player player: block.getWorld().getPlayers()) {
             if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= 4) {
                 player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
+            }
+        }
+    }
+
+    void onSpawnerSpawn(final Block block) {
+        if (spawnerLimit <= 0) return;
+        Integer val = spawnerSpawns.get(block);
+        if (val == null) val = 0;
+        else val += 1;
+        spawnerSpawns.put(block, val);
+        int rnd = random.nextInt(spawnerLimit);
+        if (rnd < val) {
+            new BukkitRunnable() {
+                @Override public void run() {
+                    block.setType(Material.AIR);
+                    block.getWorld().createExplosion(block.getLocation().add(0.5, 0.5, 0.5), 4f, true);
+                }
+            }.runTaskLater(OrePlugin.getInstance(), 0);
+            spawnerSpawns.remove(block);
+            if (debug) {
+                OrePlugin.getInstance().getLogger().info(String.format("Exploded spawner in %s at %d %d %d (%d/%d)", block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), val, spawnerLimit));
             }
         }
     }
