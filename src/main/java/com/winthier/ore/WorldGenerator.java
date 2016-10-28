@@ -130,6 +130,10 @@ class WorldGenerator {
         seed = config.getLong("Seed", seed);
         spawnerLimit = config.getInt("SpawnerLimit", spawnerLimit);
         debug = config.getBoolean("Debug", debug);
+        Random random = new Random(seed);
+        for (Noise noise: Noise.values()) {
+            noises.put(noise, new OpenSimplexNoise(random.nextLong())); // Not this.random!
+        }
         OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
     }
 
@@ -151,10 +155,6 @@ class WorldGenerator {
         this.worldName = worldName;
         worldSeed = Bukkit.getServer().getWorld(worldName).getSeed();
         seed = worldSeed;
-        Random random = new Random(seed);
-        for (Noise noise: Noise.values()) {
-            noises.put(noise, new OpenSimplexNoise(random.nextLong())); // Not this.random!
-        }
     }
 
     World getWorld() {
