@@ -15,9 +15,13 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 @RequiredArgsConstructor
 public class OreListener implements Listener {
@@ -35,7 +39,7 @@ public class OreListener implements Listener {
     }
 
     @RequiredArgsConstructor static class Rel { final int x, y, z; }
-    final static List<Rel> nbors = Arrays.asList(
+    final static List<Rel> NBORS = Arrays.asList(
         new Rel( 1,  0,  0),
         new Rel(-1,  0,  0),
         new Rel( 0,  1,  0),
@@ -64,7 +68,7 @@ public class OreListener implements Listener {
             }
         } else {
             worldGen.realize(block);
-            for (Rel nbor: nbors) {
+            for (Rel nbor: NBORS) {
                 Block o = block.getRelative(nbor.x, nbor.y, nbor.z);
                 if (o.getY() < 0 || o.getY() > 255) continue;
                 worldGen.realize(o);
@@ -85,7 +89,7 @@ public class OreListener implements Listener {
                 if (dy > 0) dy = 1;
             }
             Block dirBlock = block.getRelative(dx, dy, dz);
-            for (Rel nbor: nbors) {
+            for (Rel nbor: NBORS) {
                 Block o = dirBlock.getRelative(nbor.x, nbor.y, nbor.z);
                 if (o.getY() < 0 || o.getY() > 255) continue;
                 worldGen.realize(o);
@@ -104,5 +108,54 @@ public class OreListener implements Listener {
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
         worldGen.onSpawnerSpawn(block);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onEntityExplode(EntityExplodeEvent event) {
+        final WorldGenerator worldGen = plugin.generators.get(event.getEntity().getWorld().getName());
+        if (worldGen == null) return;
+        onExplode(worldGen, event.blockList());
+        new BukkitRunnable() {
+            @Override public void run() {
+                onExplode(worldGen, event.blockList());
+            }
+        }.runTask(plugin);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockExplode(BlockExplodeEvent event) {
+        final Block block = event.getBlock();
+        final WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
+        if (worldGen == null) return;
+        new BukkitRunnable() {
+            @Override public void run() {
+                onExplode(worldGen, event.blockList());
+            }
+        }.runTask(plugin);
+    }
+
+    private void onExplode(WorldGenerator worldGen, List<Block> blocks) {
+        for (Block block: blocks) {
+            for (Rel rel: NBORS) {
+                Block nbor = block.getRelative(rel.x, rel.y, rel.z);
+                if (blocks.contains(nbor)) continue;
+                worldGen.reveal(nbor);
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        if (event.getTo() != Material.AIR) return;
+        final Block block = event.getBlock();
+        final WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
+        if (worldGen == null) return;
+        new BukkitRunnable() {
+            @Override public void run() {
+                for (Rel rel: NBORS) {
+                    worldGen.reveal(block.getRelative(rel.x, rel.y, rel.z));
+                }
+            }
+        }.runTask(plugin);
     }
 }

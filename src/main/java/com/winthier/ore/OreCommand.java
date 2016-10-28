@@ -131,7 +131,7 @@ public class OreCommand implements CommandExecutor {
             player.sendMessage("Level of " + noise + " = " + level);
         } else if (firstArg.equals("star") && args.length == 1) {
             Block center = player.getLocation().getBlock();
-            for (OreListener.Rel nbor: OreListener.nbors) {
+            for (OreListener.Rel nbor: OreListener.NBORS) {
                 Block block = center.getRelative(nbor.x, nbor.y, nbor.z);
                 player.sendBlockChange(block.getLocation(), 1, (byte)0);
             }

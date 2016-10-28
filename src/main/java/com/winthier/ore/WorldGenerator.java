@@ -774,7 +774,7 @@ class WorldGenerator {
                     block.setType(Material.AIR);
                     block.getWorld().createExplosion(block.getLocation().add(0.5, 0.5, 0.5), 4f, true);
                 }
-            }.runTaskLater(OrePlugin.getInstance(), 0);
+            }.runTask(OrePlugin.getInstance());
             spawnerSpawns.remove(block);
             if (debug) {
                 OrePlugin.getInstance().getLogger().info(String.format("Exploded spawner in %s at %d %d %d (%d/%d)", block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), val, spawnerLimit));
