@@ -38,6 +38,14 @@ class ChunkCoordinate {
         return dx * dx + dy * dy + dz * dz;
     }
 
+    int axisDistance(ChunkCoordinate other) {
+        return Math.max(
+            Math.abs(x - other.x),
+            Math.max(
+                Math.abs(y - other.y),
+                Math.abs(z - other.z)));
+    }
+
     ChunkCoordinate getRelative(int dx, int dy, int dz) {
         return new ChunkCoordinate(x + dx, y + dy, z + dz);
     }

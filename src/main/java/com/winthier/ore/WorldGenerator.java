@@ -434,16 +434,16 @@ class WorldGenerator {
                     playerData = new PlayerData();
                     playerMap.put(uuid, playerData);
                 }
-                if (playerData.revealedLocation == null || playerData.revealedLocation.distanceSquared(ChunkCoordinate.of(player.getLocation())) > 1) {
-                    playerData.revealedLocation = ChunkCoordinate.of(player.getLocation());
-                    revealToPlayer(playerData, player);
+                ChunkCoordinate playerLocation = ChunkCoordinate.of(player.getLocation());
+                if (playerData.revealedLocation == null || playerData.revealedLocation.distanceSquared(playerLocation) > 1) {
+                    playerData.revealedLocation = playerLocation;
+                    revealToPlayer(playerData, player, playerLocation);
                 }
             }
         }
     }
 
-    private void revealToPlayer(PlayerData playerData, Player player) {
-        ChunkCoordinate center = ChunkCoordinate.of(player.getLocation());
+    private void revealToPlayer(PlayerData playerData, Player player, ChunkCoordinate center) {
         final int R = chunkRevealRadius;
         for (int y = -R; y <= R; ++y) {
             for (int z = -R; z <= R; ++z) {
@@ -459,9 +459,8 @@ class WorldGenerator {
                 }
             }
         }
-        final int RR = 5 * 5;
         for (Iterator<ChunkCoordinate> iter = playerData.shownChunks.iterator(); iter.hasNext(); ) {
-            if (iter.next().distanceSquared(center) > RR) iter.remove();
+            if (iter.next().axisDistance(center) > R) iter.remove();
         }
     }
 
