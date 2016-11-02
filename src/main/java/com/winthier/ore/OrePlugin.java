@@ -18,6 +18,7 @@ public class OrePlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        saveResource("loot.yml", false);
         instance = this;
         if (getServer().getPluginManager().getPlugin("Exploits") != null) {
             exploitsHandler = new ExploitsHandler();

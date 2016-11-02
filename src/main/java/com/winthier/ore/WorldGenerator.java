@@ -1,5 +1,6 @@
 package com.winthier.ore;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,12 +27,16 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Chest;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.PolarBear;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -110,6 +115,12 @@ class WorldGenerator {
         }
     }
 
+    @Value
+    static class LootItem {
+        ItemStack item;
+        int weight;
+    }
+
     final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
 
     private boolean shouldStop = false;
@@ -119,6 +130,8 @@ class WorldGenerator {
     private int dungeonChance = 0;
     private long seed; // Defaults to world seed
     private int spawnerLimit = 0;
+    private List<LootItem> lootItems = null;
+    private int lootMedian = 0, lootVariance = 0;
     boolean debug = false;
 
      // Call once!
@@ -569,9 +582,65 @@ class WorldGenerator {
         int dungeonLevel = getDungeonLevel(oreChunk);
         Block revealBlock = chunkCoord.getBlockAtY(dungeonLevel, getWorld()).getRelative(offsetX, 0, offsetZ);
         Schematic.PasteResult pasteResult = schem.paste(revealBlock);
+        spawnDungeonLoot(pasteResult);
         Block centerBlock = revealBlock.getRelative(schem.getSizeX()/2, schem.getSizeY()/2, schem.getSizeZ()/2);
         block.getWorld().playSound(centerBlock.getLocation().add(0.5, 0.5, 0.5), Sound.AMBIENT_CAVE, 1.0f, 1.0f);
         return pasteResult;
+    }
+
+    void spawnDungeonLoot(Schematic.PasteResult pasteResult) {
+        if (pasteResult.getChests().isEmpty()) return;
+        if (getLootItems().isEmpty()) return;
+        int total = lootMedian + random.nextInt(lootVariance) - random.nextInt(lootVariance);
+        for (int j = 0; j < total; ++j) {
+            ItemStack item = getRandomLootItem();
+            if (item != null) {
+                Inventory inv = pasteResult.getChests().get(random.nextInt(pasteResult.getChests().size())).getInventory();
+                inv.setItem(random.nextInt(inv.getSize()), item);
+            }
+        }
+        for (Chest chest: pasteResult.getChests()) chest.update();
+    }
+
+    private List<LootItem> getLootItems() {
+        if (lootItems == null) {
+            lootItems = new ArrayList<LootItem>();
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(new File(OrePlugin.getInstance().getDataFolder(), "loot.yml"));
+            ConfigurationSection section = config.getConfigurationSection(worldName);
+            if (section == null) section = config.getConfigurationSection("default");
+            if (section != null) {
+                lootMedian = section.getInt("amount.Median", 16);
+                lootVariance = section.getInt("amount.Variance", 8);
+                for (Map<?, ?>map: section.getMapList("items")) {
+                    ConfigurationSection tmp = section.createSection("tmp", map);
+                    ItemStack item = tmp.getItemStack("item");
+                    int weight = tmp.getInt("weight", 1);
+                    lootItems.add(new LootItem(item, weight));
+                }
+            }
+        }
+        return lootItems;
+    }
+
+    private ItemStack getRandomLootItem() {
+        int total = 0;
+        for (LootItem lootItem: getLootItems()) {
+            total += lootItem.getWeight();
+        }
+        total = random.nextInt(total);
+        LootItem result = null;
+        for (LootItem lootItem: getLootItems()) {
+            total -= lootItem.getWeight();
+            if (total < 0) {
+                result = lootItem;
+                break;
+            }
+        }
+        ItemStack item = result.getItem().clone();
+        if (item.getAmount() > 1) {
+            item.setAmount(1 + random.nextInt(item.getAmount() - 1));
+        }
+        return item;
     }
 
     static final List<MaterialData> FLOOR_OCEAN = Arrays.asList(

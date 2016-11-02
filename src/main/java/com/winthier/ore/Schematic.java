@@ -39,7 +39,7 @@ public class Schematic {
     @Value static class PasteResult {
         Schematic schematic;
         Block sourceBlock;
-        List<Chest> treasureChests;
+        List<Chest> chests;
     }
 
     @Value static class Extra {
@@ -96,7 +96,7 @@ public class Schematic {
         World world = a.getWorld();
         int i = 0;
         Random rnd = new Random(a.hashCode());
-        List<Chest> treasureChests = new ArrayList<>();
+        List<Chest> chests = new ArrayList<>();
         for (int y = ya; y <= yb; ++y) {
             for (int z = za; z <= zb; ++z) {
                 for (int x = xa; x <= xb; ++x) {
@@ -147,25 +147,14 @@ public class Schematic {
                             }
                             state.update();
                         } else if (id == Material.CHEST.getId() || id == Material.TRAPPED_CHEST.getId()) {
-                            treasureChests.add((Chest)block.getState());
+                            chests.add((Chest)block.getState());
                         }
                     }
                     i += 1;
                 }
             }
         }
-        if (!force && treasureChests.size() > 0) {
-            int total = 16 + rnd.nextInt(8) - rnd.nextInt(8);
-            for (int j = 0; j < total; ++j) {
-                ItemStack item = randomTreasure(rnd);
-                if (item != null) {
-                    Inventory inv = treasureChests.get(rnd.nextInt(treasureChests.size())).getInventory();
-                    inv.setItem(rnd.nextInt(inv.getSize()), item);
-                }
-            }
-            for (Chest chest: treasureChests) chest.update();
-        }
-        return new PasteResult(this, a, treasureChests);
+        return new PasteResult(this, a, chests);
     }
 
     @Value class Foo{int x, z;}
@@ -256,20 +245,20 @@ public class Schematic {
                 }
             }
         }
-        if (treasureChests.size() > 0) {
-            int total = 16 + rnd.nextInt(8) - rnd.nextInt(8);
-            for (int j = 0; j < total; ++j) {
-                ItemStack item;
-                if (j == 0) item = new ItemStack(Material.ELYTRA);
-                else if (j == 1) item = new ItemStack(Material.DRAGON_EGG);
-                else item = randomTreasure(rnd);
-                if (item != null) {
-                    Inventory inv = treasureChests.get(rnd.nextInt(treasureChests.size())).getInventory();
-                    inv.setItem(rnd.nextInt(inv.getSize()), item);
-                }
-            }
-            for (Chest chest: treasureChests) chest.update();
-        }
+        // if (treasureChests.size() > 0) {
+        //     int total = 16 + rnd.nextInt(8) - rnd.nextInt(8);
+        //     for (int j = 0; j < total; ++j) {
+        //         ItemStack item;
+        //         if (j == 0) item = new ItemStack(Material.ELYTRA);
+        //         else if (j == 1) item = new ItemStack(Material.DRAGON_EGG);
+        //         else item = randomTreasure(rnd);
+        //         if (item != null) {
+        //             Inventory inv = treasureChests.get(rnd.nextInt(treasureChests.size())).getInventory();
+        //             inv.setItem(rnd.nextInt(inv.getSize()), item);
+        //         }
+        //     }
+        //     for (Chest chest: treasureChests) chest.update();
+        // }
         return result;
     }
 
@@ -280,83 +269,6 @@ public class Schematic {
             }
         }
         return null;
-    }
-
-    @Value static class TreasureItem { int weight; ItemStack item; }
-    private static TreasureItem ti(int weight, Material mat, int amount, short damage) {
-        return new TreasureItem(weight, new ItemStack(mat, amount, damage));
-    }
-    private static TreasureItem ti(int weight, Material mat, int amount) {
-        return ti(weight, mat, amount, (short)0);
-    }
-    private static TreasureItem ti(int weight, Material mat) {
-        return ti(weight, mat, 1, (short)0);
-    }
-    final static List<TreasureItem> TREASURES = Arrays.asList(
-        ti(50, Material.SULPHUR, 16),
-        ti(50, Material.REDSTONE, 16),
-        ti(50, Material.BONE, 16),
-        ti(50, Material.COAL, 16),
-        ti(50, Material.STRING, 16),
-        ti(50, Material.ARROW, 16),
-
-        ti(50, Material.BEETROOT_SEEDS, 16),
-        ti(50, Material.MELON_SEEDS, 16),
-        ti(50, Material.PUMPKIN_SEEDS, 16),
-        ti(50, Material.SEEDS, 16),
-        ti(50, Material.CARROT, 16),
-        ti(50, Material.POTATO, 16),
-        ti(50, Material.EGG, 16),
-
-        ti(25, Material.IRON_INGOT, 8),
-        ti(25, Material.GOLD_INGOT, 8),
-        ti(25, Material.BUCKET),
-        ti(25, Material.DIAMOND, 1),
-        ti(25, Material.EMERALD, 1),
-        ti(25, Material.NAME_TAG),
-        ti(25, Material.GOLDEN_APPLE),
-        ti(25, Material.SADDLE),
-        
-        ti(10, Material.IRON_BARDING),
-        ti(10, Material.GOLD_BARDING),
-        ti(10, Material.DIAMOND_BARDING),
-
-        ti(1, Material.GOLDEN_APPLE, 1, (short)1),
-        
-        ti(10, Material.GOLD_RECORD),
-        ti(10, Material.GREEN_RECORD),
-        ti(1, Material.RECORD_3),
-        ti(1, Material.RECORD_4),
-        ti(1, Material.RECORD_5),
-        ti(1, Material.RECORD_6),
-        ti(1, Material.RECORD_7),
-        ti(1, Material.RECORD_8),
-        ti(1, Material.RECORD_9),
-        ti(1, Material.RECORD_10),
-        ti(1, Material.RECORD_11),
-        ti(1, Material.RECORD_12),
-
-        ti(1, Material.ELYTRA)
-        );
-    ItemStack randomTreasure(Random rnd) {
-        int total = 0;
-        for (TreasureItem treasureItem: TREASURES) {
-            total += treasureItem.getWeight();
-        }
-        total = rnd.nextInt(total);
-        TreasureItem result = null;
-        for (TreasureItem treasureItem: TREASURES) {
-            total -= treasureItem.getWeight();
-            if (total < 0) {
-                result = treasureItem;
-                break;
-            }
-        }
-        ItemStack item = result.getItem().clone();
-        if (item.getAmount() > 1) {
-            item.setAmount(1 + rnd.nextInt(item.getAmount() - 1));
-        }
-        return item;
     }
 
     boolean save(File file) {

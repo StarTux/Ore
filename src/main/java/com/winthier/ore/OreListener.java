@@ -62,8 +62,10 @@ public class OreListener implements Listener {
         } else if (oreType == OreType.DUNGEON) {
             Schematic.PasteResult pasteResult = worldGen.revealDungeon(block);
             if (pasteResult != null) {
-                OrePlugin.getInstance().getLogger().info("Dungeon " + pasteResult.getSchematic().getName() + "(" + pasteResult.getTreasureChests().size() + " chests) revealed for " + event.getPlayer().getName() + " at " + block.getWorld().getName() + " " + pasteResult.getSourceBlock().getX() + " " + pasteResult.getSourceBlock().getY() + " " + pasteResult.getSourceBlock().getZ() + " rot=" + pasteResult.getSchematic().getRotation());
-                DungeonRevealEvent dungeonRevealEvent = new DungeonRevealEvent(event.getPlayer(), pasteResult.getSchematic(), pasteResult.getSourceBlock(), pasteResult.getTreasureChests());
+                if (worldGen.debug) {
+                    OrePlugin.getInstance().getLogger().info("Dungeon " + pasteResult.getSchematic().getName() + "(" + pasteResult.getChests().size() + " chests) revealed for " + event.getPlayer().getName() + " at " + block.getWorld().getName() + " " + pasteResult.getSourceBlock().getX() + " " + pasteResult.getSourceBlock().getY() + " " + pasteResult.getSourceBlock().getZ() + " rot=" + pasteResult.getSchematic().getRotation());
+                }
+                DungeonRevealEvent dungeonRevealEvent = new DungeonRevealEvent(event.getPlayer(), pasteResult.getSchematic(), pasteResult.getSourceBlock(), pasteResult.getChests());
                 plugin.getServer().getPluginManager().callEvent(dungeonRevealEvent);
             }
         } else {
