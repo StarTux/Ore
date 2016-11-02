@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import lombok.Value;
 import org.bukkit.Material;
@@ -13,6 +15,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Chest;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
@@ -30,12 +33,18 @@ public class Schematic {
     int sizeX, sizeY, sizeZ;
     List<Integer> ids, data;
     int rotation;
+    final List<Extra> extras = new ArrayList<>();
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
 
     @Value static class PasteResult {
         Schematic schematic;
         Block sourceBlock;
         List<Chest> treasureChests;
+    }
+
+    @Value static class Extra {
+        int x, y, z;
+        String value;
     }
 
     @SuppressWarnings("deprecation")
@@ -53,16 +62,24 @@ public class Schematic {
         List<Integer> ids = new ArrayList<>();
         List<Integer> data = new ArrayList<>();
         World world = a.getWorld();
+        List<Extra> extras = new ArrayList<>();
         for (int y = ya; y <= yb; ++y) {
             for (int z = za; z <= zb; ++z) {
                 for (int x = xa; x <= xb; ++x) {
                     Block block = world.getBlockAt(x, y, z);
                     ids.add(block.getTypeId());
                     data.add((int)block.getData());
+                    if (block.getType() == Material.MOB_SPAWNER) {
+                        CreatureSpawner cs = (CreatureSpawner)block.getState();
+                        Extra extra = new Extra(x - xa, y - ya, z - za, cs.getSpawnedType().name());
+                        extras.add(extra);
+                    }
                 }
             }
         }
-        return new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data, 0);
+        Schematic result = new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data, 0);
+        result.extras.addAll(extras);
+        return result;
     }
 
     PasteResult paste(Block a) {
@@ -129,7 +146,7 @@ public class Schematic {
                                 }
                             }
                             state.update();
-                        } else if (id == Material.CHEST.getId()) {
+                        } else if (id == Material.CHEST.getId() || id == Material.TRAPPED_CHEST.getId()) {
                             treasureChests.add((Chest)block.getState());
                         }
                     }
@@ -149,6 +166,120 @@ public class Schematic {
             for (Chest chest: treasureChests) chest.update();
         }
         return new PasteResult(this, a, treasureChests);
+    }
+
+    @Value class Foo{int x, z;}
+    List<Block> pasteHalloween(Block a) {
+        List<Block> result = new ArrayList<>();
+        int xa = a.getX();
+        int ya = a.getY();
+        int za = a.getZ();
+        int xb = xa + sizeX - 1;
+        int yb = ya + sizeY - 1;
+        int zb = za + sizeZ - 1;
+        World world = a.getWorld();
+        int i = 0;
+        Random rnd = new Random(a.hashCode());
+        List<Chest> treasureChests = new ArrayList<>();
+        Map<Foo, Integer> hor = new HashMap<>();
+        for (int y = ya; y <= yb; ++y) {
+            for (int z = za; z <= zb; ++z) {
+                for (int x = xa; x <= xb; ++x) {
+                    Block block = world.getBlockAt(x, y, z);
+                    boolean shouldPaste = true;
+                    if (shouldPaste) {
+                        int id = ids.get(i);
+                        if (id != Material.AIR.getId()) {
+                            result.add(block);
+                            Foo foo = new Foo(x, z);
+                            Integer min = hor.get(foo);
+                            if (min == null || min > y) {
+                                hor.put(foo, y);
+                            }
+                            block.setTypeIdAndData(id, data.get(i).byteValue(), false);
+                            if (id == Material.MOB_SPAWNER.getId()) {
+                                CreatureSpawner state = (CreatureSpawner)block.getState();
+                                Extra extra = extraAt(x - xa, y - ya, z - za);
+                                EntityType et = null;
+                                if (extra != null) {
+                                    try {
+                                        et = EntityType.valueOf(extra.value);
+                                        System.out.println("Found " + et + " spawner"); // DEBUG
+                                    } catch (IllegalArgumentException iae) {
+                                        iae.printStackTrace();
+                                    }
+                                }
+                                if (et != null && et != EntityType.PIG) {
+                                    state.setSpawnedType(et);
+                                } else {
+                                    if (tags.contains("spider")) {
+                                        if (rnd.nextBoolean()) {
+                                            state.setSpawnedType(EntityType.SPIDER);
+                                        } else {
+                                            state.setSpawnedType(EntityType.CAVE_SPIDER);
+                                        }
+                                    } else if (tags.contains("halloween")) {
+                                        state.setSpawnedType(EntityType.WITCH);
+                                    } else if (tags.contains("nether")) {
+                                        state.setSpawnedType(EntityType.BLAZE);
+                                    } else {
+                                        if (rnd.nextBoolean()) {
+                                            state.setSpawnedType(EntityType.SKELETON);
+                                        } else {
+                                            state.setSpawnedType(EntityType.ZOMBIE);
+                                        }
+                                    }
+                                }
+                                state.update();
+                            } else if (id == Material.CHEST.getId() || id == Material.TRAPPED_CHEST.getId()) {
+                                treasureChests.add((Chest)block.getState());
+                            }
+                        }
+                    }
+                    i += 1;
+                }
+            }
+        }
+        i = 0;
+        for (int y = ya; y <= yb; ++y) {
+            for (int z = za; z <= zb; ++z) {
+                for (int x = xa; x <= xb; ++x) {
+                    Block block = world.getBlockAt(x, y, z);
+                    int id = ids.get(i);
+                    if (id == Material.AIR.getId()) {
+                        Integer min = hor.get(new Foo(x, z));
+                        if (min != null && min < y) {
+                            block.setType(Material.AIR, false);
+                        }
+                    }
+                    i += 1;
+                }
+            }
+        }
+        if (treasureChests.size() > 0) {
+            int total = 16 + rnd.nextInt(8) - rnd.nextInt(8);
+            for (int j = 0; j < total; ++j) {
+                ItemStack item;
+                if (j == 0) item = new ItemStack(Material.ELYTRA);
+                else if (j == 1) item = new ItemStack(Material.DRAGON_EGG);
+                else item = randomTreasure(rnd);
+                if (item != null) {
+                    Inventory inv = treasureChests.get(rnd.nextInt(treasureChests.size())).getInventory();
+                    inv.setItem(rnd.nextInt(inv.getSize()), item);
+                }
+            }
+            for (Chest chest: treasureChests) chest.update();
+        }
+        return result;
+    }
+
+    Extra extraAt(int x, int y, int z) {
+        for (Extra extra: extras) {
+            if (extra.x == x && extra.y == y && extra.z == z) {
+                return extra;
+            }
+        }
+        return null;
     }
 
     @Value static class TreasureItem { int weight; ItemStack item; }
@@ -235,6 +366,18 @@ public class Schematic {
             config.set("size", Arrays.asList(sizeX, sizeY, sizeZ));
             config.set("ids", ids);
             config.set("data", data);
+            if (!extras.isEmpty()) {
+                List<Object> list = new ArrayList<>();
+                for (Extra extra: extras) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("x", extra.x);
+                    map.put("y", extra.y);
+                    map.put("z", extra.z);
+                    map.put("value", extra.value);
+                    list.add(map);
+                }
+                config.set("extras", list);
+            }
             config.save(file);
             return true;
         } catch (IOException ioe) {
@@ -252,7 +395,14 @@ public class Schematic {
         List<Integer> ids = config.getIntegerList("ids");
         List<Integer> data = config.getIntegerList("data");
         String name = file.getName().replace(".yml", "");
-        return new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data, 0);
+        List<Extra> extras = new ArrayList<>();
+        for (Map<?, ?> map: config.getMapList("extras")) {
+            ConfigurationSection section = config.createSection("tmp", map);
+            extras.add(new Extra(section.getInt("x"), section.getInt("y"), section.getInt("z"), section.getString("value")));
+        }
+        Schematic result = new Schematic(name, tags, sizeX, sizeY, sizeZ, ids, data, 0);
+        result.extras.addAll(extras);
+        return result;
     }
 
     @SuppressWarnings("deprecation")

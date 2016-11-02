@@ -13,6 +13,7 @@ public class OrePlugin extends JavaPlugin {
     final Map<String, WorldGenerator> generators = new HashMap<>();
     ExploitsHandler exploitsHandler = null;
     Map<String, Schematic> dungeonSchematics = null;
+    public boolean halloween = false;
     
     @Override
     public void onEnable() {

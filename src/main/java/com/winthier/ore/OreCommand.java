@@ -2,6 +2,7 @@ package com.winthier.ore;
 
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.selections.Selection;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -191,6 +192,40 @@ public class OreCommand implements CommandExecutor {
             }
             worldGen.debug = !worldGen.debug;
             sender.sendMessage("Debug mode in " + worldGen.worldName + (worldGen.debug ? " enabled" : " disabled"));
+        } else if (firstArg.equals("mansion")) {
+            String subcmd = args[1].toLowerCase();
+            String name = args[2];
+            WorldEditPlugin we = getWorldEdit();
+            if (we == null) return true;
+            Selection sel = we.getSelection(player);
+            if (sel == null) {
+                player.sendMessage("Make a selection first!");
+                return true;
+            }
+            Block a = sel.getMinimumPoint().getBlock();
+            Block b = sel.getMaximumPoint().getBlock();
+            if (subcmd.equals("save")) {
+                Schematic schematic = Schematic.copy(a, b, name, new ArrayList<String>());
+                File dir = new File(OrePlugin.getInstance().getDataFolder(), "mansions");
+                dir.mkdirs();
+                File file = new File(dir, name + ".yml");
+                schematic.save(file);
+                player.sendMessage("Mansion saved as " + file.getName());
+            } else if (subcmd.equals("paste")) {
+                File dir = new File(OrePlugin.getInstance().getDataFolder(), "mansions");
+                dir.mkdirs();
+                File file = new File(dir, name + ".yml");
+                Schematic schematic = Schematic.load(file);
+                schematic.pasteHalloween(a);
+                player.sendMessage("Mansion pasted");
+            } else {
+                return false;
+            }
+        } else if (firstArg.equals("halloween")) {
+            OrePlugin.getInstance().halloween = !OrePlugin.getInstance().halloween;
+            sender.sendMessage("Halloween=" + OrePlugin.getInstance().halloween);
+        } else {
+            return false;
         }
         return true;
     }

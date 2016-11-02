@@ -8,6 +8,7 @@ commands:
   ore:
     description: Admin interface
     permission: ore.ore
+    usage: WRONG
 permissions:
   ore.ore:
     description: Use the admin command
