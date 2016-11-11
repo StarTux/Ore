@@ -582,24 +582,35 @@ class WorldGenerator {
         int dungeonLevel = getDungeonLevel(oreChunk);
         Block revealBlock = chunkCoord.getBlockAtY(dungeonLevel, getWorld()).getRelative(offsetX, 0, offsetZ);
         Schematic.PasteResult pasteResult = schem.paste(revealBlock);
-        spawnDungeonLoot(pasteResult);
+        spawnLoot(pasteResult.getChests());
         Block centerBlock = revealBlock.getRelative(schem.getSizeX()/2, schem.getSizeY()/2, schem.getSizeZ()/2);
         block.getWorld().playSound(centerBlock.getLocation().add(0.5, 0.5, 0.5), Sound.AMBIENT_CAVE, 1.0f, 1.0f);
         return pasteResult;
     }
 
-    void spawnDungeonLoot(Schematic.PasteResult pasteResult) {
-        if (pasteResult.getChests().isEmpty()) return;
+    @Value static class Slot {
+        int chest, slot;
+    }
+    void spawnLoot(List<Chest> chests) {
+        if (chests == null || chests.isEmpty()) return;
+        List<Slot> slots = new ArrayList<>();
+        for (int j = 0; j < chests.size(); ++j) {
+            Chest chest = chests.get(j);
+            for (int i = 0; i < chest.getInventory().getSize(); ++i) {
+                slots.add(new Slot(j, i));
+            }
+        }
+        Collections.shuffle(slots, random);
+        Iterator<Slot> slotIter = slots.iterator();
         if (getLootItems().isEmpty()) return;
         int total = lootMedian + random.nextInt(lootVariance) - random.nextInt(lootVariance);
         for (int j = 0; j < total; ++j) {
-            ItemStack item = getRandomLootItem();
-            if (item != null) {
-                Inventory inv = pasteResult.getChests().get(random.nextInt(pasteResult.getChests().size())).getInventory();
-                inv.setItem(random.nextInt(inv.getSize()), item);
+            if (slotIter.hasNext()) {
+                Slot slot = slotIter.next();
+                chests.get(slot.chest).getInventory().setItem(slot.slot, getRandomLootItem());
             }
         }
-        for (Chest chest: pasteResult.getChests()) chest.update();
+        for (Chest chest: chests) chest.update();
     }
 
     private List<LootItem> getLootItems() {
