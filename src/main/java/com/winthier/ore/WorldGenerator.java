@@ -675,6 +675,7 @@ class WorldGenerator {
     static final List<MaterialData> FLOOR_DEFAULT = Arrays.asList(
         new MaterialData(Material.COBBLESTONE),
         new MaterialData(Material.MOSSY_COBBLESTONE));
+
     void revealMiniCave(Block block) {
         LinkedList<Block> todo = new LinkedList<>();
         Set<Block> found = new HashSet<>();
@@ -735,7 +736,9 @@ class WorldGenerator {
         found.addAll(addLater);
         int spawnerCount = special != Special.ICE ? random.nextInt(3) : 0;
         int mobCount = 1 + random.nextInt(5);
+        int chestCount = random.nextInt(2);
         List<Block> blockList = new ArrayList<>(found);
+        List<Chest> chests = new ArrayList<>(chestCount);
         Collections.shuffle(blockList, random);
         for (Block foundBlock: blockList) {
             if (!found.contains(foundBlock.getRelative(BlockFace.DOWN)) &&
@@ -776,14 +779,24 @@ class WorldGenerator {
                             foundBlock.getWorld().spawnEntity(loc, et);
                         }
                     }
+                } else if (chestCount > 0) {
+                    chestCount -= 1;
+                    Block chestBlock = foundBlock.getRelative(0, 1, 0);
+                    chestBlock.setType(Material.CHEST);
+                    Chest chest = (Chest)chestBlock.getState();
+                    chests.add(chest);
                 }
             }
-            // Reveal walls
+        }
+        // Reveal walls
+        for (Block foundBlock: found) {
             for (BlockFace dir: NBORS) {
                 Block nbor = foundBlock.getRelative(dir);
                 if (!found.contains(nbor)) realize(nbor);
             }
         }
+        // Fill chests
+        spawnLoot(chests);
     }
 
     final static BlockFace[] HOR = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.NORTH_WEST, BlockFace.NORTH_EAST, BlockFace.SOUTH_EAST, BlockFace.SOUTH_WEST};
