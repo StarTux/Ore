@@ -2,14 +2,16 @@ package com.winthier.ore.event;
 
 import com.winthier.ore.Schematic;
 import java.util.List;
-import lombok.Value;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.bukkit.block.Block;
 import org.bukkit.block.Chest;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
-@Value
+@Getter
+@RequiredArgsConstructor
 public class DungeonRevealEvent extends Event {
     // Boiler Plate
 
