@@ -752,12 +752,13 @@ class WorldGenerator {
                     if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
                         state.setSpawnedType(EntityType.BLAZE);
                     } else {
-                        switch (random.nextInt(5)) {
+                        switch (random.nextInt(6)) {
                         case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
                         case 1: state.setSpawnedType(EntityType.SKELETON); break;
                         case 2: state.setSpawnedType(EntityType.SPIDER); break;
                         case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
                         case 4: state.setSpawnedType(EntityType.CREEPER); break;
+                        case 5: state.setSpawnedType(EntityType.VEX); break;
                         }
                     }
                 } else if (mobCount > 0) {
@@ -820,6 +821,8 @@ class WorldGenerator {
         EntityType.CAVE_SPIDER,
         EntityType.SILVERFISH,
         EntityType.SLIME,
+        EntityType.VINDICATOR,
+        EntityType.EVOKER,
         EntityType.OCELOT,
         EntityType.WOLF
     };
