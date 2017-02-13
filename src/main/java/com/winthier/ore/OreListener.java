@@ -54,6 +54,7 @@ public class OreListener implements Listener {
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
         OreType oreType = worldGen.getOreAt(block);
+	if (worldGen.halloween != null) worldGen.halloween.onBlockBreak(event.getPlayer(), block);
         if (oreType == OreType.MINI_CAVE) {
             if (block.getType() == Material.STONE && !plugin.isPlayerPlaced(block)) {
                 worldGen.revealMiniCave(block);

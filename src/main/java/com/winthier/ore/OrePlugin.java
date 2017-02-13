@@ -13,7 +13,6 @@ public class OrePlugin extends JavaPlugin {
     final Map<String, WorldGenerator> generators = new HashMap<>();
     ExploitsHandler exploitsHandler = null;
     Map<String, Schematic> dungeonSchematics = null;
-    public boolean halloween = false;
     
     @Override
     public void onEnable() {
@@ -39,7 +38,7 @@ public class OrePlugin extends JavaPlugin {
             ConfigurationSection section = worldsSection.getConfigurationSection(worldKey);
             try {
                 if (section.getBoolean("Enabled", false)) {
-                    WorldGenerator worldGen = new WorldGenerator(worldKey);
+                    WorldGenerator worldGen = new WorldGenerator(this, worldKey);
                     generators.put(worldKey, worldGen);
                     worldGen.configure(section);
                     worldGen.start();

@@ -161,7 +161,7 @@ public class Schematic {
     }
 
     @Value class Foo{int x, z;}
-    List<Block> pasteHalloween(Block a) {
+    List<Block> pasteHalloween(WorldGenerator gen, Block a) {
         List<Block> result = new ArrayList<>();
         int xa = a.getX();
         int ya = a.getY();
@@ -248,20 +248,7 @@ public class Schematic {
                 }
             }
         }
-        // if (treasureChests.size() > 0) {
-        //     int total = 16 + rnd.nextInt(8) - rnd.nextInt(8);
-        //     for (int j = 0; j < total; ++j) {
-        //         ItemStack item;
-        //         if (j == 0) item = new ItemStack(Material.ELYTRA);
-        //         else if (j == 1) item = new ItemStack(Material.DRAGON_EGG);
-        //         else item = randomTreasure(rnd);
-        //         if (item != null) {
-        //             Inventory inv = treasureChests.get(rnd.nextInt(treasureChests.size())).getInventory();
-        //             inv.setItem(rnd.nextInt(inv.getSize()), item);
-        //         }
-        //     }
-        //     for (Chest chest: treasureChests) chest.update();
-        // }
+        if (gen != null) gen.spawnLoot(treasureChests);
         return result;
     }
 

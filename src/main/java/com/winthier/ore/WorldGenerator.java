@@ -41,6 +41,7 @@ import org.bukkit.material.MaterialData;
 import org.bukkit.scheduler.BukkitRunnable;
 
 class WorldGenerator {
+    final OrePlugin plugin;
     final String worldName;
     final MaterialData stoneMat = new MaterialData(Material.STONE);
     final int chunkRevealRadius = 3;
@@ -49,6 +50,7 @@ class WorldGenerator {
     final long worldSeed;
     final Set<ChunkCoordinate> revealedDungeons = new HashSet<>();
     final Map<Block, Integer> spawnerSpawns = new HashMap<>();
+    Halloween halloween = null;
 
     static public enum Noise {
         // Do NOT change the order of this enum!
@@ -148,6 +150,10 @@ class WorldGenerator {
             noises.put(noise, new OpenSimplexNoise(random.nextLong())); // Not this.random!
         }
         OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
+	if (config.getBoolean("Halloween", false)) {
+	    halloween = new Halloween(this);
+	    plugin.getLogger().info("Halloween enabled in " + worldName);
+	}
     }
 
     // Async
@@ -164,7 +170,8 @@ class WorldGenerator {
     final LinkedList<UUID> playerList = new LinkedList<>();
     final Map<UUID, PlayerData> playerMap = new HashMap<>();
 
-    WorldGenerator(String worldName) {
+    WorldGenerator(OrePlugin plugin, String worldName) {
+	this.plugin = plugin;
         this.worldName = worldName;
         worldSeed = Bukkit.getServer().getWorld(worldName).getSeed();
         seed = worldSeed;
@@ -379,6 +386,7 @@ class WorldGenerator {
         try {
             syncTask.cancel();
         } catch (IllegalStateException ise) {}
+	if (halloween != null) halloween.cleanup();
     }
 
     void asyncRun() {
@@ -415,6 +423,7 @@ class WorldGenerator {
     }
 
     void syncRun() {
+	if (halloween != null) halloween.onTick();
         if (playerList.isEmpty()) {
             // Clean player map
             for (Iterator<Map.Entry<UUID, PlayerData> > it = playerMap.entrySet().iterator(); it.hasNext();) {

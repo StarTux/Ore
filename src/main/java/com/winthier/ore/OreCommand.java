@@ -216,14 +216,11 @@ public class OreCommand implements CommandExecutor {
                 dir.mkdirs();
                 File file = new File(dir, name + ".yml");
                 Schematic schematic = Schematic.load(file);
-                schematic.pasteHalloween(a);
+                schematic.pasteHalloween(null, a);
                 player.sendMessage("Mansion pasted");
             } else {
                 return false;
             }
-        } else if (firstArg.equals("halloween")) {
-            OrePlugin.getInstance().halloween = !OrePlugin.getInstance().halloween;
-            sender.sendMessage("Halloween=" + OrePlugin.getInstance().halloween);
         } else {
             return false;
         }
