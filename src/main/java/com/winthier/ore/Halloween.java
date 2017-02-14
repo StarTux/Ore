@@ -80,7 +80,7 @@ class Halloween {
                 for (Player player: worldGen.getWorld().getPlayers()) {
                     player.setCompassTarget(mansionLocation);
                 }
-		if (stateTicks > 0 && stateTicks % (20*60*5) == 0) {
+		if (stateTicks > 0 && stateTicks % (20*60*10) == 0) {
 		    reminder();
 		}
             }
