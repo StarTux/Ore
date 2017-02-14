@@ -80,6 +80,9 @@ class Halloween {
                 for (Player player: worldGen.getWorld().getPlayers()) {
                     player.setCompassTarget(mansionLocation);
                 }
+		if (stateTicks > 0 && stateTicks % (20*60*5) == 0) {
+		    reminder();
+		}
             }
             break;
         case FOUND:
@@ -153,12 +156,17 @@ class Halloween {
         for (int i = 0; i < rotation; ++i) schematic = schematic.rotate();
         mansionBlocks.addAll(schematic.pasteHalloween(worldGen, world.getBlockAt(cx, min, cz)));
         OrePlugin.getInstance().getLogger().info("HALLOWEEN: " + mansionBlocks.size() + " blocks placed");
-        Msg.announce("&dA &dnew &dvista &dspawned &din &dthe &dResource &dworld!");
+        Msg.announce("&dA &dnew &dromantic &dvista &dspawned &din &dthe &dResource &dworld!");
         Msg.announce("&dFollow your compass to find it!");
         OrePlugin.getInstance().getLogger().info("Mansion " + schematic.getName() + " spawned at " + cx + "," + cz);
         Block block = world.getBlockAt(cx + schematic.getSizeX()/2, min, cz+ schematic.getSizeZ()/2);
         mansionLocation = block.getLocation();
         return true;
+    }
+
+    void reminder() {
+        Msg.announce("&dA &dromantic &dvista &dspawned &din &dthe &dResource &dworld!");
+        Msg.announce("&dFollow your compass to find it!");
     }
 
     void onBlockBreak(Player player, Block block) {
