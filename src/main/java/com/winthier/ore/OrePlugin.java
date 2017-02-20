@@ -13,7 +13,7 @@ public class OrePlugin extends JavaPlugin {
     final Map<String, WorldGenerator> generators = new HashMap<>();
     ExploitsHandler exploitsHandler = null;
     Map<String, Schematic> dungeonSchematics = null;
-    
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
@@ -101,5 +101,11 @@ public class OrePlugin extends JavaPlugin {
             getLogger().info("" + dungeonSchematics.size() + " dungeon schematics loaded");
         }
         return dungeonSchematics;
+    }
+
+    public void realizeBlock(Block block) {
+        WorldGenerator generator = generators.get(block.getWorld().getName());
+        if (generator == null) return;
+        generator.realize(block);
     }
 }
