@@ -139,13 +139,12 @@ public class Schematic {
                             } else if (tags.contains("nether")) {
                                 state.setSpawnedType(EntityType.BLAZE);
                             } else {
-                                switch (rnd.nextInt(6)) {
+                                switch (rnd.nextInt(5)) {
                                 case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
                                 case 1: state.setSpawnedType(EntityType.SKELETON); break;
                                 case 2: state.setSpawnedType(EntityType.SPIDER); break;
                                 case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
                                 case 4: state.setSpawnedType(EntityType.CREEPER); break;
-                                case 5: state.setSpawnedType(EntityType.VEX); break;
                                 }
                             }
                             state.update();
