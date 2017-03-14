@@ -1,6 +1,7 @@
 package com.winthier.ore;
 
 import com.winthier.ore.event.DungeonRevealEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -113,38 +115,48 @@ public class OreListener implements Listener {
         worldGen.onSpawnerSpawn(block);
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onEntityExplode(EntityExplodeEvent event) {
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOW)
+    public void onEntityExplodeLow(EntityExplodeEvent event) {
         final WorldGenerator worldGen = plugin.generators.get(event.getEntity().getWorld().getName());
         if (worldGen == null) return;
-        onExplode(worldGen, event.blockList());
-        new BukkitRunnable() {
-            @Override public void run() {
-                onExplode(worldGen, event.blockList());
-            }
-        }.runTask(plugin);
+        for (Block block: event.blockList()) worldGen.realize(block);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOW)
+    public void onBlockExplodeLow(BlockExplodeEvent event) {
+        final WorldGenerator worldGen = plugin.generators.get(event.getBlock().getWorld().getName());
+        if (worldGen == null) return;
+        for (Block block: event.blockList()) worldGen.realize(block);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
-    public void onBlockExplode(BlockExplodeEvent event) {
-        final Block block = event.getBlock();
-        final WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
+    public void onEntityExplodeMonitor(EntityExplodeEvent event) {
+        final WorldGenerator worldGen = plugin.generators.get(event.getEntity().getWorld().getName());
         if (worldGen == null) return;
-        new BukkitRunnable() {
-            @Override public void run() {
-                onExplode(worldGen, event.blockList());
-            }
-        }.runTask(plugin);
+        List<Block> blockList = new ArrayList<>(event.blockList());
+        revealExplosionNeighbors(worldGen, blockList);
     }
 
-    private void onExplode(WorldGenerator worldGen, List<Block> blocks) {
-        for (Block block: blocks) {
-            for (Rel rel: NBORS) {
-                Block nbor = block.getRelative(rel.x, rel.y, rel.z);
-                if (blocks.contains(nbor)) continue;
-                worldGen.reveal(nbor);
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onBlockExplodeMonitor(BlockExplodeEvent event) {
+        final WorldGenerator worldGen = plugin.generators.get(event.getBlock().getWorld().getName());
+        if (worldGen == null) return;
+        List<Block> blockList = new ArrayList<>(event.blockList());
+        revealExplosionNeighbors(worldGen, blockList);
+    }
+
+    private void revealExplosionNeighbors(WorldGenerator worldGen, List<Block> blocks) {
+        new BukkitRunnable() {
+            @Override public void run() {
+                for (Block block: blocks) {
+                    for (Rel rel: NBORS) {
+                        Block nbor = block.getRelative(rel.x, rel.y, rel.z);
+                        if (blocks.contains(nbor)) continue;
+                        worldGen.reveal(nbor);
+                    }
+                }
             }
-        }
+        }.runTask(plugin);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
@@ -160,5 +172,21 @@ public class OreListener implements Listener {
                 }
             }
         }.runTask(plugin);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onExplosionPrime(ExplosionPrimeEvent event) {
+        WorldGenerator worldGen = plugin.generators.get(event.getEntity().getWorld().getName());
+        if (worldGen == null) return;
+        int radius = (int)event.getRadius();
+        if (radius > 16) radius = 16;
+        Block center = event.getEntity().getLocation().getBlock();
+        for (int dz = -radius; dz <= radius; ++dz) {
+            for (int dy = -radius; dy <= radius; ++dy) {
+                for (int dx = -radius; dx <= radius; ++dx) {
+                    worldGen.realize(center.getRelative(dx, dy, dz));
+                }
+            }
+        }
     }
 }
