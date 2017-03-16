@@ -4,10 +4,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.Value;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -27,7 +31,7 @@ import org.bukkit.material.Mushroom;
 import org.bukkit.material.Vine;
 
 @Value
-public class Schematic {
+public final class Schematic {
     String name;
     List<String> tags;
     int sizeX, sizeY, sizeZ;
@@ -36,13 +40,13 @@ public class Schematic {
     final List<Extra> extras = new ArrayList<>();
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
 
-    @Value static class PasteResult {
+    @Value final static class PasteResult {
         Schematic schematic;
         Block sourceBlock;
         List<Chest> chests;
     }
 
-    @Value static class Extra {
+    @Value final static class Extra {
         int x, y, z;
         String value;
     }
@@ -86,6 +90,38 @@ public class Schematic {
         return paste(a, false);
     }
 
+    @RequiredArgsConstructor @Getter
+    final class BlockSetter {
+        private final Block block;
+        private final int id, data;
+        void update(Random rnd) {
+            block.setTypeIdAndData(id, (byte)data, false);
+            if (id == Material.MOB_SPAWNER.getId()) {
+                CreatureSpawner state = (CreatureSpawner)block.getState();
+                if (tags.contains("spider")) {
+                    if (rnd.nextBoolean()) {
+                        state.setSpawnedType(EntityType.SPIDER);
+                    } else {
+                        state.setSpawnedType(EntityType.CAVE_SPIDER);
+                    }
+                } else if (tags.contains("halloween")) {
+                    state.setSpawnedType(EntityType.WITCH);
+                } else if (tags.contains("nether")) {
+                    state.setSpawnedType(EntityType.BLAZE);
+                } else {
+                    switch (rnd.nextInt(5)) {
+                    case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
+                    case 1: state.setSpawnedType(EntityType.SKELETON); break;
+                    case 2: state.setSpawnedType(EntityType.SPIDER); break;
+                    case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
+                    case 4: state.setSpawnedType(EntityType.CREEPER); break;
+                    }
+                }
+                state.update();
+            }
+        }
+    }
+
     PasteResult paste(Block a, boolean force) {
         int xa = a.getX();
         int ya = a.getY();
@@ -94,14 +130,17 @@ public class Schematic {
         int yb = ya + sizeY - 1;
         int zb = za + sizeZ - 1;
         World world = a.getWorld();
-        int i = 0;
         Random rnd = new Random(a.hashCode());
         List<Chest> chests = new ArrayList<>();
+        List<BlockSetter> blockSetters = new ArrayList<>();
+        int i = -1;
         for (int y = ya; y <= yb; ++y) {
             for (int z = za; z <= zb; ++z) {
                 for (int x = xa; x <= xb; ++x) {
+                    i += 1;
+                    int id = ids.get(i);
                     Block block = world.getBlockAt(x, y, z);
-                    boolean shouldPaste = false;
+                    final boolean shouldPaste;
                     if (force) {
                         shouldPaste = true;
                     } else if (!OrePlugin.getInstance().isPlayerPlaced(block)) {
@@ -120,40 +159,31 @@ public class Schematic {
                         case WATER:
                         case STATIONARY_WATER:
                         case OBSIDIAN:
+                        case LONG_GRASS:
                             shouldPaste = true;
+                            break;
+                        case AIR:
+                            shouldPaste = id == Material.MOB_SPAWNER.getId();
+                            break;
+                        default:
+                            shouldPaste = false;
+                            break;
                         }
+                    } else {
+                        shouldPaste = false;
                     }
                     if (shouldPaste) {
-                        int id = ids.get(i);
-                        block.setTypeIdAndData(id, data.get(i).byteValue(), false);
-                        if (id == Material.MOB_SPAWNER.getId()) {
-                            CreatureSpawner state = (CreatureSpawner)block.getState();
-                            if (tags.contains("spider")) {
-                                if (rnd.nextBoolean()) {
-                                    state.setSpawnedType(EntityType.SPIDER);
-                                } else {
-                                    state.setSpawnedType(EntityType.CAVE_SPIDER);
-                                }
-                            } else if (tags.contains("halloween")) {
-                                state.setSpawnedType(EntityType.WITCH);
-                            } else if (tags.contains("nether")) {
-                                state.setSpawnedType(EntityType.BLAZE);
-                            } else {
-                                switch (rnd.nextInt(5)) {
-                                case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
-                                case 1: state.setSpawnedType(EntityType.SKELETON); break;
-                                case 2: state.setSpawnedType(EntityType.SPIDER); break;
-                                case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
-                                case 4: state.setSpawnedType(EntityType.CREEPER); break;
-                                }
-                            }
-                            state.update();
-                        } else if (id == Material.CHEST.getId() || id == Material.TRAPPED_CHEST.getId()) {
-                            chests.add((Chest)block.getState());
-                        }
+                        BlockSetter blockSetter = new BlockSetter(block, id, data.get(i));
+                        blockSetters.add(blockSetter);
                     }
-                    i += 1;
                 }
+            }
+        }
+        for (BlockSetter blockSetter: blockSetters) {
+            blockSetter.update(rnd);
+            int id = blockSetter.getId();
+            if (id == Material.CHEST.getId() || id == Material.TRAPPED_CHEST.getId()) {
+                chests.add((Chest)blockSetter.getBlock().getState());
             }
         }
         return new PasteResult(this, a, chests);
