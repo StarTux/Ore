@@ -56,6 +56,13 @@
       <version>0.1</version>
       <scope>provided</scope>
     </dependency>
+    <!-- Custom -->
+    <dependency>
+      <groupId>com.winthier.custom</groupId>
+      <artifactId>custom</artifactId>
+      <version>0.1</version>
+      <scope>provided</scope>
+    </dependency>
     <!-- WorldEdit -->
     <dependency>
       <groupId>com.sk89q.worldedit</groupId>

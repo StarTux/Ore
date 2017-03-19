@@ -1,5 +1,6 @@
 package com.winthier.ore;
 
+import com.winthier.custom.CustomPlugin;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -633,9 +634,23 @@ class WorldGenerator {
                 lootVariance = section.getInt("amount.Variance", 8);
                 for (Map<?, ?>map: section.getMapList("items")) {
                     ConfigurationSection tmp = section.createSection("tmp", map);
-                    ItemStack item = tmp.getItemStack("item");
-                    int weight = tmp.getInt("weight", 1);
-                    lootItems.add(new LootItem(item, weight));
+                    String customId = tmp.getString("CustomID");
+                    ItemStack item;
+                    if (customId == null) {
+                        item = tmp.getItemStack("item");
+                    } else {
+                        int amount = tmp.getInt("amount", 1);
+                        try {
+                            item = CustomPlugin.getInstance().getItemManager().spawnItemStack(customId, amount);
+                        } catch (IllegalArgumentException iae) {
+                            item = null;
+                            plugin.getLogger().warning("Custom loot ID not found: " + customId);
+                        }
+                    }
+                    if (item != null) {
+                        int weight = tmp.getInt("weight", 1);
+                        lootItems.add(new LootItem(item, weight));
+                    }
                 }
             }
         }
