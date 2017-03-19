@@ -3,7 +3,7 @@ description: Custom, dynamic ore generation
 author: StarTux
 version: 0.1
 main: com.winthier.ore.OrePlugin
-softdepend: [ Exploits, Multiverse-Core ]
+softdepend: [ Exploits ]
 commands:
   ore:
     description: Admin interface
