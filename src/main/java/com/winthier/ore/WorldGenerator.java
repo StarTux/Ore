@@ -137,7 +137,7 @@ class WorldGenerator {
     private int lootMedian = 0, lootVariance = 0;
     boolean debug = false;
 
-     // Call once!
+    // Call once!
     void configure(ConfigurationSection config) {
         enableHotspots = config.getBoolean("Hotspots", enableHotspots);
         enableSpecialBiomes = config.getBoolean("SpecialBiomes", enableSpecialBiomes);
@@ -151,10 +151,10 @@ class WorldGenerator {
             noises.put(noise, new OpenSimplexNoise(random.nextLong())); // Not this.random!
         }
         OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
-	if (config.getBoolean("Halloween", false)) {
-	    halloween = new Halloween(this);
-	    plugin.getLogger().info("Halloween enabled in " + worldName);
-	}
+        if (config.getBoolean("Halloween", false)) {
+            halloween = new Halloween(this);
+            plugin.getLogger().info("Halloween enabled in " + worldName);
+        }
     }
 
     // Async
@@ -172,7 +172,7 @@ class WorldGenerator {
     final Map<UUID, PlayerData> playerMap = new HashMap<>();
 
     WorldGenerator(OrePlugin plugin, String worldName) {
-	this.plugin = plugin;
+        this.plugin = plugin;
         this.worldName = worldName;
         worldSeed = Bukkit.getServer().getWorld(worldName).getSeed();
         seed = worldSeed;
@@ -375,10 +375,10 @@ class WorldGenerator {
             }
         }.runTaskAsynchronously(OrePlugin.getInstance());
         syncTask = new BukkitRunnable() {
-            @Override public void run() {
-                syncRun();
-            }
-        };
+                @Override public void run() {
+                    syncRun();
+                }
+            };
         syncTask.runTaskTimer(OrePlugin.getInstance(), 1, 1);
     }
 
@@ -387,7 +387,7 @@ class WorldGenerator {
         try {
             syncTask.cancel();
         } catch (IllegalStateException ise) {}
-	if (halloween != null) halloween.cleanup();
+        if (halloween != null) halloween.cleanup();
     }
 
     void asyncRun() {
@@ -424,7 +424,7 @@ class WorldGenerator {
     }
 
     void syncRun() {
-	if (halloween != null) halloween.onTick();
+        if (halloween != null) halloween.onTick();
         if (playerList.isEmpty()) {
             // Clean player map
             for (Iterator<Map.Entry<UUID, PlayerData> > it = playerMap.entrySet().iterator(); it.hasNext();) {
@@ -679,26 +679,26 @@ class WorldGenerator {
     }
 
     static final List<MaterialData> FLOOR_OCEAN = Arrays.asList(
-        new MaterialData(Material.PRISMARINE, (byte)1),
-        new MaterialData(Material.PRISMARINE, (byte)2));
+                                                                new MaterialData(Material.PRISMARINE, (byte)1),
+                                                                new MaterialData(Material.PRISMARINE, (byte)2));
     static final List<MaterialData> FLOOR_DESERT = Arrays.asList(
-        new MaterialData(Material.MAGMA),
-        new MaterialData(Material.RED_SANDSTONE),
-        new MaterialData(Material.HARD_CLAY));
+                                                                 new MaterialData(Material.MAGMA),
+                                                                 new MaterialData(Material.RED_SANDSTONE),
+                                                                 new MaterialData(Material.HARD_CLAY));
     static final List<MaterialData> FLOOR_ICE = Arrays.asList(
-        new MaterialData(Material.ICE),
-        new MaterialData(Material.PACKED_ICE));
+                                                              new MaterialData(Material.ICE),
+                                                              new MaterialData(Material.PACKED_ICE));
     static final List<MaterialData> FLOOR_JUNGLE = Arrays.asList(
-        new MaterialData(Material.SMOOTH_BRICK),
-        new MaterialData(Material.SMOOTH_BRICK, (byte)1),
-        new MaterialData(Material.SMOOTH_BRICK, (byte)2),
-        new MaterialData(Material.SMOOTH_BRICK, (byte)3));
+                                                                 new MaterialData(Material.SMOOTH_BRICK),
+                                                                 new MaterialData(Material.SMOOTH_BRICK, (byte)1),
+                                                                 new MaterialData(Material.SMOOTH_BRICK, (byte)2),
+                                                                 new MaterialData(Material.SMOOTH_BRICK, (byte)3));
     static final List<MaterialData> FLOOR_MUSHROOM = Arrays.asList(
-        new MaterialData(Material.HUGE_MUSHROOM_1, (byte)14), // All sides
-        new MaterialData(Material.HUGE_MUSHROOM_2, (byte)14));
+                                                                   new MaterialData(Material.HUGE_MUSHROOM_1, (byte)14), // All sides
+                                                                   new MaterialData(Material.HUGE_MUSHROOM_2, (byte)14));
     static final List<MaterialData> FLOOR_DEFAULT = Arrays.asList(
-        new MaterialData(Material.COBBLESTONE),
-        new MaterialData(Material.MOSSY_COBBLESTONE));
+                                                                  new MaterialData(Material.COBBLESTONE),
+                                                                  new MaterialData(Material.MOSSY_COBBLESTONE));
 
     void revealMiniCave(Block block) {
         LinkedList<Block> todo = new LinkedList<>();
