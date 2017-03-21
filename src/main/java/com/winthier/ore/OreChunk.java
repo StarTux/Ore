@@ -70,7 +70,7 @@ class OreChunk {
     void setUsed() {
         lastUse = System.currentTimeMillis();
     }
-    
+
     boolean isTooOld() {
         long now = System.currentTimeMillis();
         return lastUse + 1000*60*10 < now; // 10 minutes

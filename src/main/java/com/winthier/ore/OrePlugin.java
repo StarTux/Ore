@@ -8,7 +8,8 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class OrePlugin extends JavaPlugin {
+@Getter
+public final class OrePlugin extends JavaPlugin {
     @Getter static OrePlugin instance;
     final Map<String, WorldGenerator> generators = new HashMap<>();
     ExploitsHandler exploitsHandler = null;

@@ -46,6 +46,7 @@ class WorldGenerator {
     final String worldName;
     final MaterialData stoneMat = new MaterialData(Material.STONE);
     final int chunkRevealRadius = 3;
+    final int chunkRevealRadiusSquared = chunkRevealRadius * chunkRevealRadius * chunkRevealRadius;
     final Random random = new Random(System.currentTimeMillis());
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
     final long worldSeed;
@@ -150,7 +151,7 @@ class WorldGenerator {
         for (Noise noise: Noise.values()) {
             noises.put(noise, new OpenSimplexNoise(random.nextLong())); // Not this.random!
         }
-        OrePlugin.getInstance().getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
+        plugin.getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
         if (config.getBoolean("Halloween", false)) {
             halloween = new Halloween(this);
             plugin.getLogger().info("Halloween enabled in " + worldName);
@@ -162,13 +163,11 @@ class WorldGenerator {
 
     // Sync
     static class PlayerData {
-        ChunkCoordinate revealedLocation;
-        final Set<ChunkCoordinate> shownChunks = new HashSet<>();
+        final Map<ChunkCoordinate, Long> shownChunks = new HashMap<>();
     }
     BukkitRunnable syncTask = null;
     final Map<ChunkCoordinate, OreChunk> generatedChunks = new HashMap<>();
     final Set<ChunkCoordinate> scheduledChunks = new HashSet<>();
-    final LinkedList<UUID> playerList = new LinkedList<>();
     final Map<UUID, PlayerData> playerMap = new HashMap<>();
 
     WorldGenerator(OrePlugin plugin, String worldName) {
@@ -373,13 +372,13 @@ class WorldGenerator {
             @Override public void run() {
                 asyncRun();
             }
-        }.runTaskAsynchronously(OrePlugin.getInstance());
+        }.runTaskAsynchronously(plugin);
         syncTask = new BukkitRunnable() {
                 @Override public void run() {
                     syncRun();
                 }
             };
-        syncTask.runTaskTimer(OrePlugin.getInstance(), 1, 1);
+        syncTask.runTaskTimer(plugin, 1, 1);
     }
 
     void stop() {
@@ -396,93 +395,85 @@ class WorldGenerator {
             try {
                 chunk = queue.poll(10, TimeUnit.SECONDS);
             } catch (InterruptedException ie) {}
+            if (shouldStop) return;
             if (chunk == null) continue;
             generate(chunk);
-            OrePlugin inst = OrePlugin.getInstance();
-            if (inst != null) {
-                final OreChunk chunkCopy = chunk; // Not a real copy; must make final
-                new BukkitRunnable() {
-                    @Override public void run() {
-                        syncDidGenerateChunk(chunkCopy);
-                    }
-                }.runTask(inst);
-            }
+            final OreChunk finalChunk = chunk;
+            new BukkitRunnable() {
+                @Override public void run() {
+                    syncDidGenerateChunk(finalChunk);
+                }
+            }.runTaskLater(plugin, 20L);
         }
     }
 
     // Callback from the async thread
     void syncDidGenerateChunk(OreChunk chunk) {
         ChunkCoordinate coord = chunk.getCoordinate();
-        scheduledChunks.remove(coord);
-        generatedChunks.put(coord, chunk);
+        long now = System.currentTimeMillis();
         for (Player player: getWorld().getPlayers()) {
-            final int R = chunkRevealRadius * chunkRevealRadius;
-            if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= R) {
+            if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= chunkRevealRadiusSquared) {
+                getPlayerData(player.getUniqueId()).shownChunks.put(coord, now);
                 revealChunkToPlayer(chunk, player);
             }
         }
+        generatedChunks.put(coord, chunk);
+        scheduledChunks.remove(coord);
+        chunk.setUsed();
+    }
+
+    PlayerData getPlayerData(UUID uuid) {
+        PlayerData playerData = playerMap.get(uuid);
+        if (playerData == null) {
+            playerData = new PlayerData();
+            playerMap.put(uuid, playerData);
+        }
+        return playerData;
     }
 
     void syncRun() {
-        if (halloween != null) halloween.onTick();
-        if (playerList.isEmpty()) {
-            // Clean player map
-            for (Iterator<Map.Entry<UUID, PlayerData> > it = playerMap.entrySet().iterator(); it.hasNext();) {
-                Map.Entry<UUID, PlayerData> en = it.next();
-                Player player = Bukkit.getServer().getPlayer(en.getKey());
-                if (player == null || !player.getWorld().getName().equals(worldName)) {
-                    it.remove();
-                }
+        // Garbage collect chunks
+        for (Iterator<Map.Entry<ChunkCoordinate, OreChunk> > it = generatedChunks.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<ChunkCoordinate, OreChunk> en = it.next();
+            if (en.getValue().isTooOld()) {
+                it.remove();
             }
-            // Fill player list
-            for (Player player: getWorld().getPlayers()) {
-                playerList.add(player.getUniqueId());
+        }
+        for (Iterator<UUID> iter = playerMap.keySet().iterator(); iter.hasNext();) {
+            Player player = plugin.getServer().getPlayer(iter.next());
+            if (player == null || player.getWorld() != getWorld()) {
+                iter.remove();
             }
-            // Garbage collect chunks
-            for (Iterator<Map.Entry<ChunkCoordinate, OreChunk> > it = generatedChunks.entrySet().iterator(); it.hasNext();) {
-                Map.Entry<ChunkCoordinate, OreChunk> en = it.next();
-                if (en.getValue().isTooOld()) {
-                    it.remove();
-                }
-            }
-            // TODO: Pause task until a player joins the world?
-        } else {
-            UUID uuid = playerList.removeFirst();
-            Player player = Bukkit.getServer().getPlayer(uuid);
-            if (player == null || !player.getWorld().getName().equals(worldName)) {
-                playerMap.remove(uuid);
-            } else {
-                PlayerData playerData = playerMap.get(uuid);
-                if (playerData == null) {
-                    playerData = new PlayerData();
-                    playerMap.put(uuid, playerData);
-                }
-                ChunkCoordinate playerLocation = ChunkCoordinate.of(player.getLocation());
-                if (playerData.revealedLocation == null || playerData.revealedLocation.distanceSquared(playerLocation) > 1) {
-                    playerData.revealedLocation = playerLocation;
-                    revealToPlayer(playerData, player, playerLocation);
-                }
-            }
+        }
+        for (Player player: getWorld().getPlayers()) {
+            UUID uuid = player.getUniqueId();
+            PlayerData playerData = getPlayerData(uuid);
+            ChunkCoordinate playerLocation = ChunkCoordinate.of(player.getLocation());
+            revealPlayerIter(playerData, player, playerLocation);
         }
     }
 
-    private void revealToPlayer(PlayerData playerData, Player player, ChunkCoordinate center) {
+    private void revealPlayerIter(PlayerData playerData, Player player, ChunkCoordinate center) {
         final int R = chunkRevealRadius;
+        long now = System.currentTimeMillis();
+        boolean dutyDone = false;
         for (int y = -R; y <= R; ++y) {
             for (int z = -R; z <= R; ++z) {
                 for (int x = -R; x <= R; ++x) {
                     OreChunk chunk = getOrGenerate(center.getRelative(x, y, z));
                     if (chunk != null) {
                         ChunkCoordinate coord = chunk.getCoordinate();
-                        if (!playerData.shownChunks.contains(coord)) {
+                        Long shown = playerData.shownChunks.get(coord);
+                        if (shown == null || (!dutyDone && shown + 1000 * 30 < now)) {
+                            playerData.shownChunks.put(coord, now);
                             revealChunkToPlayer(chunk, player);
-                            playerData.shownChunks.add(coord);
+                            dutyDone = true;
                         }
                     }
                 }
             }
         }
-        for (Iterator<ChunkCoordinate> iter = playerData.shownChunks.iterator(); iter.hasNext(); ) {
+        for (Iterator<ChunkCoordinate> iter = playerData.shownChunks.keySet().iterator(); iter.hasNext(); ) {
             if (iter.next().axisDistance(center) > R) iter.remove();
         }
     }
@@ -506,7 +497,7 @@ class WorldGenerator {
                     if (mat != null && !ore.isHidden()) {
                         Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
                         if (block.getType() == Material.STONE &&
-                            !OrePlugin.getInstance().isPlayerPlaced(block) &&
+                            !plugin.isPlayerPlaced(block) &&
                             isExposedToAir(block)) {
                             player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
                         }
@@ -529,6 +520,18 @@ class WorldGenerator {
         return result;
     }
 
+    OreChunk getAndGenerate(ChunkCoordinate coord) {
+        OreChunk result = generatedChunks.get(coord);
+        if (result == null) {
+            result = OreChunk.of(coord.getBlock(getWorld()));
+            generate(result);
+            scheduledChunks.remove(coord);
+            generatedChunks.put(coord, result);
+        }
+        result.setUsed();
+        return result;
+    }
+
     OreType getOreAt(Block block) {
         ChunkCoordinate coord = ChunkCoordinate.of(block);
         OreChunk chunk = generatedChunks.get(coord);
@@ -538,10 +541,9 @@ class WorldGenerator {
 
     void realize(Block block) {
         if (block.getType() != Material.STONE) return;
-        if (OrePlugin.getInstance().isPlayerPlaced(block)) return;
+        if (plugin.isPlayerPlaced(block)) return;
         ChunkCoordinate coord = ChunkCoordinate.of(block);
-        OreChunk chunk = getOrGenerate(coord);
-        if (chunk == null) return;
+        OreChunk chunk = getAndGenerate(coord);
         OreType ore = chunk.at(block);
         if (ore == null || ore.isHidden()) return;
         MaterialData mat = ore.getMaterialData();
@@ -556,26 +558,26 @@ class WorldGenerator {
         chunkCoord = ChunkCoordinate.of(zeroBlock);
         if (revealedDungeons.contains(chunkCoord)) return null;
         revealedDungeons.add(chunkCoord);
-        if (OrePlugin.getInstance().isPlayerPlaced(zeroBlock)) return null;
-        OrePlugin.getInstance().setPlayerPlaced(zeroBlock);
+        if (plugin.isPlayerPlaced(zeroBlock)) return null;
+        plugin.setPlayerPlaced(zeroBlock);
         OreChunk oreChunk = generatedChunks.get(chunkCoord);
         if (oreChunk == null) oreChunk = OreChunk.of(chunkCoord.getBlock(getWorld()));
         Special special = Special.of(oreChunk.getBiome());
         List<Schematic> schematics = new ArrayList<>();
         String searchTag = special.name().toLowerCase();
         // Add schematics with matching tag
-        for (Schematic schem: OrePlugin.getInstance().getDungeonSchematics().values()) {
+        for (Schematic schem: plugin.getDungeonSchematics().values()) {
             if (schem.getTags().contains(searchTag)) schematics.add(schem);
         }
         // If empty, add schematics without the default tags, or without any tags
         if (schematics.isEmpty()) {
-            for (Schematic schem: OrePlugin.getInstance().getDungeonSchematics().values()) {
+            for (Schematic schem: plugin.getDungeonSchematics().values()) {
                 if (schem.getTags().isEmpty()) schematics.add(schem);
                 else if (schem.getTags().contains("default")) schematics.add(schem);
             }
         }
         if (schematics.isEmpty()) {
-            OrePlugin.getInstance().getLogger().warning("No schematics found!");
+            plugin.getLogger().warning("No schematics found!");
             return null;
         }
         DungeonChunk dc = new DungeonChunk(chunkCoord.getX(), chunkCoord.getZ(), seed);
@@ -626,7 +628,7 @@ class WorldGenerator {
     private List<LootItem> getLootItems() {
         if (lootItems == null) {
             lootItems = new ArrayList<LootItem>();
-            YamlConfiguration config = YamlConfiguration.loadConfiguration(new File(OrePlugin.getInstance().getDataFolder(), "loot.yml"));
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "loot.yml"));
             ConfigurationSection section = config.getConfigurationSection(worldName);
             if (section == null) section = config.getConfigurationSection("default");
             if (section != null) {
@@ -709,7 +711,7 @@ class WorldGenerator {
             Block doBlock = todo.removeFirst();
             if ((doBlock.getType() == Material.STONE ||
                  doBlock.getType() == Material.AIR) &&
-                !OrePlugin.getInstance().isPlayerPlaced(doBlock) &&
+                !plugin.isPlayerPlaced(doBlock) &&
                 getOreAt(doBlock) == OreType.MINI_CAVE) {
                 found.add(doBlock);
                 for (BlockFace dir: NBORS) {
@@ -748,7 +750,7 @@ class WorldGenerator {
                     if (!found.contains(laterBlock) &&
                         (laterBlock.getType() == Material.STONE ||
                          laterBlock.getType() == Material.AIR) &&
-                        !OrePlugin.getInstance().isPlayerPlaced(laterBlock)) {
+                        !plugin.isPlayerPlaced(laterBlock)) {
                         laterBlock.setType(Material.AIR, false);
                         addLater.add(laterBlock);
                     }
@@ -816,7 +818,7 @@ class WorldGenerator {
         for (Block foundBlock: found) {
             for (BlockFace dir: NBORS) {
                 Block nbor = foundBlock.getRelative(dir);
-                if (!found.contains(nbor)) realize(nbor);
+                if (!found.contains(nbor)) reveal(nbor);
             }
         }
         // Fill chests
@@ -871,9 +873,9 @@ class WorldGenerator {
         MaterialData mat = ore.getMaterialData();
         if (mat == null) return;
         if (block.getType() != Material.STONE) return;
-        if (OrePlugin.getInstance().isPlayerPlaced(block)) return;
+        if (plugin.isPlayerPlaced(block)) return;
         for (Player player: block.getWorld().getPlayers()) {
-            if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= 4) {
+            if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= chunkRevealRadiusSquared) {
                 player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
             }
         }
@@ -892,10 +894,10 @@ class WorldGenerator {
                     block.setType(Material.AIR);
                     block.getWorld().createExplosion(block.getLocation().add(0.5, 0.5, 0.5), 4f, true);
                 }
-            }.runTask(OrePlugin.getInstance());
+            }.runTask(plugin);
             spawnerSpawns.remove(block);
             if (debug) {
-                OrePlugin.getInstance().getLogger().info(String.format("Exploded spawner in %s at %d %d %d (%d/%d)", block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), val, spawnerLimit));
+                plugin.getLogger().info(String.format("Exploded spawner in %s at %d %d %d (%d/%d)", block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), val, spawnerLimit));
             }
         }
     }

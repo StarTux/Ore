@@ -6,9 +6,9 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 
 @Value
-class ChunkCoordinate {
+final class ChunkCoordinate {
     int x, y, z;
-    
+
     static ChunkCoordinate of(Block block) {
         int x = block.getX();
         int y = block.getY();
@@ -48,5 +48,9 @@ class ChunkCoordinate {
 
     ChunkCoordinate getRelative(int dx, int dy, int dz) {
         return new ChunkCoordinate(x + dx, y + dy, z + dz);
+    }
+
+    ChunkCoordinate diff(ChunkCoordinate other) {
+        return new ChunkCoordinate(other.x - x, other.y - y, other.z - z);
     }
 }
