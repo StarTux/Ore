@@ -220,11 +220,14 @@ class WorldGenerator {
      * @return -1 if this chunk does not contain a dungeon,
      * positive number for the y level of the dungeon.
      */
-    int getDungeonLevel(OreChunk chunk) {
+    int getDungeonLevel(OreChunk chunk, Special special) {
         Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, seed).hashCode());
-        int result = 5 + rnd.nextInt(43);
         if (dungeonChance < 100 && rnd.nextInt(100) >= dungeonChance) return -1;
-        return result;
+        if (special == Special.OCEAN) {
+            return 5 + rnd.nextInt(12);
+        } else {
+            return 5 + rnd.nextInt(43);
+        }
     }
 
     void generate(OreChunk chunk) {
@@ -252,7 +255,7 @@ class WorldGenerator {
 
         Special special = Special.of(chunk.getBiome());
         boolean isSlimeChunk = isSlimeChunk(chunk);
-        int dungeonLevel = dungeonChance > 0 ? getDungeonLevel(chunk) : -1;
+        int dungeonLevel = dungeonChance > 0 ? getDungeonLevel(chunk, special) : -1;
 
         for (int dy = 0; dy < OreChunk.SIZE; ++dy) {
             for (int dz = 0; dz < OreChunk.SIZE; ++dz) {
@@ -591,7 +594,7 @@ class WorldGenerator {
         if (offsetX > 0) offsetX = rnd.nextInt(offsetX + 1);
         if (offsetY > 0) offsetY = rnd.nextInt(offsetY + 1);
         if (offsetZ > 0) offsetZ = rnd.nextInt(offsetZ + 1);
-        int dungeonLevel = getDungeonLevel(oreChunk);
+        int dungeonLevel = getDungeonLevel(oreChunk, special);
         Block revealBlock = chunkCoord.getBlockAtY(dungeonLevel, getWorld()).getRelative(offsetX, 0, offsetZ);
         Schematic.PasteResult pasteResult = schem.paste(revealBlock);
         spawnLoot(pasteResult.getChests());

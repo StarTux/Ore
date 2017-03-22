@@ -154,10 +154,6 @@ public final class Schematic {
                         case GRAVEL:
                         case SAND:
                         case SANDSTONE:
-                        case LAVA:
-                        case STATIONARY_LAVA:
-                        case WATER:
-                        case STATIONARY_WATER:
                         case OBSIDIAN:
                         case LONG_GRASS:
                             shouldPaste = true;
