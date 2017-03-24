@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,13 +91,27 @@ public final class Schematic {
         return paste(a, false);
     }
 
-    @RequiredArgsConstructor @Getter
-    final class BlockSetter {
+    @Getter
+    final class BlockSetter implements Comparable<BlockSetter> {
         private final Block block;
-        private final int id, data;
+        private final Material material;
+        private final int data;
+        private final int sortValue;
+
+        BlockSetter(Block block, Material material, int data) {
+            this.block = block;
+            this.material = material;
+            this.data = data;
+            int order = 0;
+            if (material.isSolid()) order -= 10;
+            if (material.isOccluding()) order -= 10;
+            if (material.isTransparent()) order += 5;
+            this.sortValue = order;
+        }
+
         void update(Random rnd) {
-            block.setTypeIdAndData(id, (byte)data, false);
-            if (id == Material.MOB_SPAWNER.getId()) {
+            block.setTypeIdAndData(material.getId(), (byte)data, this.sortValue < 0);
+            if (material == Material.MOB_SPAWNER) {
                 CreatureSpawner state = (CreatureSpawner)block.getState();
                 if (tags.contains("spider")) {
                     if (rnd.nextBoolean()) {
@@ -119,6 +134,11 @@ public final class Schematic {
                 }
                 state.update();
             }
+        }
+
+        @Override
+        public int compareTo(BlockSetter other) {
+            return Integer.compare(this.sortValue, other.sortValue);
         }
     }
 
@@ -159,7 +179,7 @@ public final class Schematic {
                             shouldPaste = true;
                             break;
                         case AIR:
-                            shouldPaste = id == Material.MOB_SPAWNER.getId();
+                            shouldPaste = mat == Material.MOB_SPAWNER;
                             break;
                         default:
                             shouldPaste = false;
@@ -169,16 +189,18 @@ public final class Schematic {
                         shouldPaste = false;
                     }
                     if (shouldPaste) {
-                        BlockSetter blockSetter = new BlockSetter(block, id, data.get(i));
+                        Material material = Material.getMaterial(id);
+                        BlockSetter blockSetter = new BlockSetter(block, material, data.get(i));
                         blockSetters.add(blockSetter);
                     }
                 }
             }
         }
+        Collections.sort(blockSetters);
         for (BlockSetter blockSetter: blockSetters) {
             blockSetter.update(rnd);
-            int id = blockSetter.getId();
-            if (id == Material.CHEST.getId() || id == Material.TRAPPED_CHEST.getId()) {
+            Material material = blockSetter.getMaterial();
+            if (material == Material.CHEST || material == Material.TRAPPED_CHEST) {
                 chests.add((Chest)blockSetter.getBlock().getState());
             }
         }
