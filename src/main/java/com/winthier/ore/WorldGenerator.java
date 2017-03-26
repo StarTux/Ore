@@ -221,13 +221,12 @@ class WorldGenerator {
      * positive number for the y level of the dungeon.
      */
     int getDungeonLevel(OreChunk chunk, Special special) {
+        if (chunk.getBiome() == Biome.DEEP_OCEAN) return -1;
         Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, seed).hashCode());
         if (dungeonChance < 100 && rnd.nextInt(100) >= dungeonChance) return -1;
-        if (special == Special.OCEAN) {
-            return 5 + rnd.nextInt(12);
-        } else {
-            return 5 + rnd.nextInt(43);
-        }
+        int result = 5 + rnd.nextInt(43);
+        if (special == Special.OCEAN && result > 16) return -1;
+        return result;
     }
 
     void generate(OreChunk chunk) {
