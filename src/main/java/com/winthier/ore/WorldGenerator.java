@@ -36,6 +36,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.PolarBear;
+import org.bukkit.entity.Stray;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
@@ -778,7 +779,18 @@ class WorldGenerator {
                     spawnerBlock.setType(Material.MOB_SPAWNER);
                     CreatureSpawner state = (CreatureSpawner)spawnerBlock.getState();
                     if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
-                        state.setSpawnedType(EntityType.BLAZE);
+                        switch (random.nextInt(2)) {
+                        case 0: state.setSpawnedType(EntityType.BLAZE); break;
+                        case 1: state.setSpawnedType(EntityType.HUSK); break;
+                        }
+                    } else if (special == Special.ICE) {
+                        switch (random.nextInt(5)) {
+                        case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
+                        case 1: state.setSpawnedType(EntityType.STRAY); break;
+                        case 2: state.setSpawnedType(EntityType.SPIDER); break;
+                        case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
+                        case 4: state.setSpawnedType(EntityType.CREEPER); break;
+                        }
                     } else {
                         switch (random.nextInt(5)) {
                         case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
@@ -793,14 +805,23 @@ class WorldGenerator {
                     Block baseBlock = foundBlock.getRelative(0, 1, 0);
                     Location loc = baseBlock.getLocation().add(0.5, 0.0, 0.5);
                     if (special == Special.ICE) {
-                        if (miniCaveHasSpaceForFatMob(found, baseBlock)) {
-                            PolarBear polarBear = foundBlock.getWorld().spawn(loc, PolarBear.class);
-                            if (random.nextBoolean()) {
+                            switch (random.nextInt(3)) {
+                            case 0:
+                                PolarBear polarBear = foundBlock.getWorld().spawn(loc, PolarBear.class);
+                                if (miniCaveHasSpaceForFatMob(found, baseBlock)) {
+                                    polarBear.setAdult();
+                                } else {
+                                    polarBear.setBaby();
+                                }
+                                break;
+                            case 1:
+                                polarBear = foundBlock.getWorld().spawn(loc, PolarBear.class);
                                 polarBear.setBaby();
-                            } else {
-                                polarBear.setAdult();
+                                break;
+                            case 2:
+                                Stray stray = foundBlock.getWorld().spawn(loc, Stray.class);
+                                break;
                             }
-                        }
                     } else {
                         EntityType et = randomEntityType(special);
                         if (et != EntityType.SPIDER || miniCaveHasSpaceForFatMob(found, baseBlock)) {
@@ -856,7 +877,8 @@ class WorldGenerator {
     final static EntityType[] ENT_DESERT = {
         EntityType.MAGMA_CUBE,
         EntityType.PIG_ZOMBIE,
-        EntityType.BLAZE
+        EntityType.BLAZE,
+        EntityType.HUSK
     };
     EntityType randomEntityType(Special special) {
         if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
