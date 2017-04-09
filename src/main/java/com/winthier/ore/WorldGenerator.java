@@ -42,7 +42,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.scheduler.BukkitRunnable;
 
-class WorldGenerator {
+public class WorldGenerator {
     final OrePlugin plugin;
     final String worldName;
     final MaterialData stoneMat = new MaterialData(Material.STONE);
@@ -662,7 +662,7 @@ class WorldGenerator {
         return lootItems;
     }
 
-    private ItemStack getRandomLootItem() {
+    public ItemStack getRandomLootItem() {
         int total = 0;
         for (LootItem lootItem: getLootItems()) {
             total += lootItem.getWeight();

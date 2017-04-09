@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -108,5 +109,9 @@ public final class OrePlugin extends JavaPlugin {
         WorldGenerator generator = generators.get(block.getWorld().getName());
         if (generator == null) return;
         generator.realize(block);
+    }
+
+    public WorldGenerator getWorldGenerator(World world) {
+        return generators.get(world.getName());
     }
 }
