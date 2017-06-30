@@ -254,6 +254,7 @@ public class WorldGenerator {
         }
 
         Special special = Special.of(chunk.getBiome());
+        if (special == Special.OCEAN) diamondLevel = 0;
         boolean isSlimeChunk = isSlimeChunk(chunk);
         int dungeonLevel = dungeonChance > 0 ? getDungeonLevel(chunk, special) : -1;
 
