@@ -115,7 +115,7 @@ public class OreListener implements Listener {
         placedBlocks.add(event.getBlock());
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onSpawnerSpawn(SpawnerSpawnEvent event) {
         Block block = event.getSpawner().getBlock();
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());

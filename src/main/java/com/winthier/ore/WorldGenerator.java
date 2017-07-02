@@ -915,8 +915,8 @@ public class WorldGenerator {
         if (rnd < val) {
             new BukkitRunnable() {
                 @Override public void run() {
-                    block.setType(Material.AIR);
                     block.getWorld().createExplosion(block.getLocation().add(0.5, 0.5, 0.5), 4f, true);
+                    block.setType(Material.AIR);
                 }
             }.runTask(plugin);
             spawnerSpawns.remove(block);
