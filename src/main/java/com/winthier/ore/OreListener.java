@@ -120,6 +120,7 @@ public class OreListener implements Listener {
         Block block = event.getSpawner().getBlock();
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
+        if (plugin.isPlayerPlaced(block)) return;
         worldGen.onSpawnerSpawn(block);
     }
 
