@@ -7,16 +7,10 @@ import org.bukkit.block.Block;
 
 @Value
 final class ChunkCoordinate {
-    int x, y, z;
+    public final int x, y, z;
 
     static ChunkCoordinate of(Block block) {
-        int x = block.getX();
-        int y = block.getY();
-        int z = block.getZ();
-        int rx = x < 0 ? (x + 1) / OreChunk.SIZE - 1 : x / OreChunk.SIZE;
-        int ry = y < 0 ? (y + 1) / OreChunk.SIZE - 1 : y / OreChunk.SIZE;
-        int rz = z < 0 ? (z + 1) / OreChunk.SIZE - 1 : z / OreChunk.SIZE;
-        return new ChunkCoordinate(rx, ry, rz);
+        return new ChunkCoordinate(block.getX() >> 4, block.getY() >> 4, block.getZ() >> 4);
     }
 
     static ChunkCoordinate of(Location loc) {

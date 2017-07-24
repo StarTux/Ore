@@ -45,9 +45,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 public class WorldGenerator {
     final OrePlugin plugin;
     final String worldName;
-    final MaterialData stoneMat = new MaterialData(Material.STONE);
     final int chunkRevealRadius = 3;
-    final int chunkRevealRadiusSquared = chunkRevealRadius * chunkRevealRadius * chunkRevealRadius;
+    final int chunkRevealRadiusSquared = chunkRevealRadius * chunkRevealRadius;
     final Random random = new Random(System.currentTimeMillis());
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
     final long worldSeed;
@@ -55,10 +54,6 @@ public class WorldGenerator {
     final Map<Block, Integer> spawnerSpawns = new HashMap<>();
     Halloween halloween = null;
 
-    static public enum Noise {
-        // Do NOT change the order of this enum!
-        DIAMOND, COAL, IRON, GOLD, REDSTONE, LAPIS, SPECIAL, MINI_CAVE, EMERALD, SLIME, DUNGEON;
-    }
     static public enum Special {
         NONE, MESA, OCEAN, DESERT, JUNGLE, ICE, MUSHROOM, FOREST, SAVANNA, PLAINS;
         static Special of(Biome biome) {
@@ -120,16 +115,15 @@ public class WorldGenerator {
         }
     }
 
+    @Value static final class Vec3{final int x, y, z;}
+    @Value static final class Vec2{final int x, y;}
     @Value
     static class LootItem {
         ItemStack item;
         int weight;
     }
 
-    final Map<Noise, OpenSimplexNoise> noises = new EnumMap<>(Noise.class);
-
     private boolean shouldStop = false;
-    private boolean enableHotspots = false;
     private boolean enableSpecialBiomes = false;
     private boolean enableMiniCaves = false;
     private int dungeonChance = 0;
@@ -141,7 +135,6 @@ public class WorldGenerator {
 
     // Call once!
     void configure(ConfigurationSection config) {
-        enableHotspots = config.getBoolean("Hotspots", enableHotspots);
         enableSpecialBiomes = config.getBoolean("SpecialBiomes", enableSpecialBiomes);
         enableMiniCaves = config.getBoolean("MiniCaves", enableMiniCaves);
         dungeonChance = config.getInt("Dungeons", dungeonChance);
@@ -149,10 +142,7 @@ public class WorldGenerator {
         spawnerLimit = config.getInt("SpawnerLimit", spawnerLimit);
         debug = config.getBoolean("Debug", debug);
         Random random = new Random(seed);
-        for (Noise noise: Noise.values()) {
-            noises.put(noise, new OpenSimplexNoise(random.nextLong())); // Not this.random!
-        }
-        plugin.getLogger().info("Loaded world " + worldName + " Hotspots=" + enableHotspots + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
+        plugin.getLogger().info("Loaded world " + worldName + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
         if (config.getBoolean("Halloween", false)) {
             halloween = new Halloween(this);
             plugin.getLogger().info("Halloween enabled in " + worldName);
@@ -182,191 +172,89 @@ public class WorldGenerator {
         return Bukkit.getServer().getWorld(worldName);
     }
 
-    private int getHotspotBaseHeight(Noise noise) {
-        switch (noise) {
-        case DIAMOND: return 32;
-        case LAPIS: return 32;
-        case IRON: return 64;
-        case COAL: return 64;
-        case GOLD: return 32;
-        case REDSTONE: return 32;
-        case EMERALD: return 32;
-        default: return 16;
-        }
-    }
-
-    int getOreLevel(Noise noise, int chunkX, int chunkZ) {
-        int base = getHotspotBaseHeight(noise);
-        double val = noises.get(noise).at(chunkX, 0, chunkZ, 5.0);
-        if (val > 0.5) {
-            return base*4;
-        } else if (val > 0.4) {
-            return base*2;
-        } else if (val > 0.0) {
-            return base;
-        } else {
-            return 0;
-        }
-    }
-
-    boolean isSlimeChunk(OreChunk chunk) {
-        int x = chunk.getX();
-        int z = chunk.getZ();
-        Random tmprnd = new Random(worldSeed + (long) (x * x * 0x4c1906) + (long) (x * 0x5ac0db) + (long) (z * z) * 0x4307a7L + (long) (z * 0x5f24f) ^ 0x3ad8025f);
-        return tmprnd.nextInt(10) == 0;
-    }
-
     @Value static class DungeonChunk { int x, z; long seed; }
     /**
      * @return -1 if this chunk does not contain a dungeon,
      * positive number for the y level of the dungeon.
      */
     int getDungeonLevel(OreChunk chunk, Special special) {
-        if (chunk.getBiome() == Biome.DEEP_OCEAN) return -1;
+        if (special == Special.OCEAN) return -1;
         Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, seed).hashCode());
         if (dungeonChance < 100 && rnd.nextInt(100) >= dungeonChance) return -1;
-        int result = 5 + rnd.nextInt(43);
-        if (special == Special.OCEAN && result > 16) return -1;
-        return result;
+        return 5 + rnd.nextInt(32);
     }
 
-    void generate(OreChunk chunk) {
-        int cx = chunk.getBlockX();
-        int cy = chunk.getBlockY();
-        int cz = chunk.getBlockZ();
-
-        int diamondLevel = 16;
-        int lapisLevel = 32;
-        int redstoneLevel = 16;
-        int ironLevel = 64;
-        int goldLevel = 32;
-        int emeraldLevel = 0;
-
-        if (enableHotspots) {
-            int x = chunk.getX();
-            int y = chunk.getZ();
-            diamondLevel = getOreLevel(Noise.DIAMOND, x, y);
-            lapisLevel = getOreLevel(Noise.LAPIS, x, y);
-            redstoneLevel = getOreLevel(Noise.REDSTONE, x, y);
-            ironLevel = getOreLevel(Noise.IRON, x, y);
-            goldLevel = getOreLevel(Noise.GOLD, x, y);
-            emeraldLevel = getOreLevel(Noise.EMERALD, x, y);
+    boolean generateVein(OreChunk chunk, OreType ore, Random rnd, int size) {
+        List<Vec3> todo = new ArrayList<>(size);
+        List<Vec3> found = new ArrayList<>(size);
+        Set<Vec3> done = new HashSet<>();
+        if (chunk.y == 0) {
+            todo.add(new Vec3(rnd.nextInt(16), 5 + rnd.nextInt(11), rnd.nextInt(16)));
+        } else {
+            todo.add(new Vec3(rnd.nextInt(16), rnd.nextInt(16), rnd.nextInt(16)));
         }
-
-        Special special = Special.of(chunk.getBiome());
-        boolean isSlimeChunk = isSlimeChunk(chunk);
-        int dungeonLevel = dungeonChance > 0 ? getDungeonLevel(chunk, special) : -1;
-
-        for (int dy = 0; dy < OreChunk.SIZE; ++dy) {
-            for (int dz = 0; dz < OreChunk.SIZE; ++dz) {
-                for (int dx = 0; dx < OreChunk.SIZE; ++dx) {
-                    int x = cx + dx;
-                    int y = cy + dy;
-                    int z = cz + dz;
-                    if (y <= 0) continue;
-                    // Dungeon
-                    if (dungeonLevel > -1 && y >= dungeonLevel && y < dungeonLevel + OreChunk.SIZE) {
-                        chunk.set(dx, dy, dz, OreType.DUNGEON);
-                        continue;
-                    }
-                    // Special Biomes
-                    if (!enableSpecialBiomes) {
-                        // Do nothing
-                    } else if (special == Special.DESERT || special == Special.JUNGLE || special == Special.SAVANNA) { // Fossils
-                        if (y >= 32) {
-                            if (noises.get(Noise.SPECIAL).abs(x, y, z, 8.0) > 0.65 &&
-                                noises.get(Noise.SPECIAL).at(x, y, z, 1.0) > 0.0) {
-                                chunk.set(dx, dy, dz, OreType.FOSSIL);
-                            }
-                        }
-                    } else if (special == Special.OCEAN) { // Prismarine
-                        if (y < 64) {
-                            double pri = noises.get(Noise.SPECIAL).abs(x, y, z, 6.0);
-                            if (pri > 0.80) {
-                                chunk.set(dx, dy, dz, OreType.SEA_LANTERN);
-                            } else if (pri > 0.68) {
-                                chunk.set(dx, dy, dz, OreType.PRISMARINE);
-                            }
-                        }
-                    } else { // Clay
-                        if (y <= 64 && y >= 32) {
-                            if (noises.get(Noise.SPECIAL).abs(x, y, z, 8.0) > 0.65) {
-                                chunk.set(dx, dy, dz, OreType.CLAY);
-                            }
-                        }
-                    }
-                    // Slime
-                    if (isSlimeChunk && y <= 40) {
-                        if (noises.get(Noise.SLIME).abs(x, y, z, 5.0) > 0.79) {
-                            chunk.set(dx, dy, dz, OreType.SLIME);
-                        }
-                    }
-                    // Coal
-                    if (y <= 128) {
-                        if (noises.get(Noise.COAL).abs(x, y, z, 5.0) > 0.66) {
-                            chunk.set(dx, dy, dz, OreType.COAL_ORE);
-                        }
-                    }
-                    // Mini Caves
-                    if (enableMiniCaves && y <= 32) {
-                        double dun = noises.get(Noise.MINI_CAVE).abs(x, y, z, 12.0, 6.0, 12.0);
-                        if (dun > 0.63) {
-                            chunk.set(dx, dy, dz, OreType.MINI_CAVE);
-                        }
-                    }
-                    // Iron
-                    if (y <= ironLevel) {
-                        double iro = noises.get(Noise.IRON).abs(x, y, z, 5.0);
-                        if (iro  > 0.71) {
-                            chunk.set(dx, dy, dz, OreType.IRON_ORE);
-                        } else if (iro > 0.58) {
-                            chunk.setIfEmpty(dx, dy, dz, OreType.ANDESITE);
-                        }
-                    }
-                    // Gold
-                    if (y <= goldLevel ||
-                        (special == Special.MESA && y >= 32 && y <= 79)) {
-                        double gol = noises.get(Noise.GOLD).abs(x, y, z, 5.0);
-                        if (gol > 0.78) {
-                            chunk.set(dx, dy, dz, OreType.GOLD_ORE);
-                        } else if (gol > 0.58) {
-                            chunk.setIfEmpty(dx, dy, dz, OreType.DIORITE);
-                        }
-                    }
-                    // Redstone
-                    if (y <= redstoneLevel) {
-                        double red = noises.get(Noise.REDSTONE).abs(x, y, z, 5.0);
-                        if (red > 0.73) {
-                            chunk.set(dx, dy, dz, OreType.REDSTONE_ORE);
-                        }
-                    }
-                    // Lapis
-                    if (y <= lapisLevel) {
-                        double lap = noises.get(Noise.LAPIS).abs(x, y, z, 4.0);
-                        if (lap > 0.79) { // used to be 0.81
-                            chunk.set(dx, dy, dz, OreType.LAPIS_ORE);
-                        } else if (lap > 0.55) {
-                            chunk.setIfEmpty(dx, dy, dz, OreType.DIORITE);
-                        }
-                    }
-                    // Emerald
-                    if (y <= emeraldLevel) {
-                        double eme = noises.get(Noise.EMERALD).abs(x, y, z, 4.0);
-                        if (eme > 0.79) {
-                            chunk.set(dx, dy, dz, OreType.EMERALD_ORE);
-                        }
-                    }
-                    // Diamond
-                    if (y <= diamondLevel) {
-                        double dia = noises.get(Noise.DIAMOND).abs(x, y, z, 4.0);
-                        if (dia > 0.79) {
-                            chunk.set(dx, dy, dz, OreType.DIAMOND_ORE);
-                        } else if (dia > 0.58) {
-                            chunk.setIfEmpty(dx, dy, dz, OreType.GRANITE);
-                        }
-                    }
-                }
+        while (!todo.isEmpty() && found.size() < size) {
+            Collections.shuffle(todo, rnd);
+            Vec3 vec = todo.remove(todo.size() - 1);
+            done.add(vec);
+            if (chunk.get(vec.x, vec.y, vec.z) != OreType.NONE) continue;
+            found.add(vec);
+            if (vec.x > 0) {
+                Vec3 a = new Vec3(vec.x - 1, vec.y - 0, vec.z - 0);
+                if (!done.contains(a)) todo.add(a);
             }
+            if (vec.y > 3 || (chunk.y > 0 && vec.y > 0)) {
+                Vec3 a = new Vec3(vec.x - 0, vec.y - 1, vec.z - 0);
+                if (!done.contains(a)) todo.add(a);
+            }
+            if (vec.z > 0) {
+                Vec3 a = new Vec3(vec.x - 0, vec.y - 0, vec.z - 1);
+                if (!done.contains(a)) todo.add(a);
+            }
+            if (vec.x < 15) {
+                Vec3 a = new Vec3(vec.x + 1, vec.y + 0, vec.z + 0);
+                if (!done.contains(a)) todo.add(a);
+            }
+            if (vec.y < 15) {
+                Vec3 a = new Vec3(vec.x + 0, vec.y + 1, vec.z + 0);
+                if (!done.contains(a)) todo.add(a);
+            }
+            if (vec.z < 15) {
+                Vec3 a = new Vec3(vec.x + 0, vec.y + 0, vec.z + 1);
+                if (!done.contains(a)) todo.add(a);
+            }
+        }
+        if (found.size() < size / 2) return false;
+        for (Vec3 vec: found) {
+            chunk.set(vec.x, vec.y, vec.z, ore);
+        }
+        return true;
+    }
+
+    void generateVein(OreChunk chunk, OreType ore, Random rnd, int size, int tries) {
+        for (int i = 0; i < tries; i += 1) {
+            if (generateVein(chunk, ore, rnd, size)) return;
+        }
+    }
+
+    @Value final static class ChunkSeed { final int x, y, z; final long seed; }
+    void generate(OreChunk chunk) {
+        Special special = Special.of(chunk.getBiome());
+        int dungeonLevel = dungeonChance > 0 ? getDungeonLevel(chunk, special) : -1;
+        Random rnd = new Random(new ChunkSeed(chunk.x, chunk.y, chunk.z, seed).hashCode());
+        int g = special == Special.MESA ? 4 : 2;
+        if (chunk.y < 1) generateVein(chunk, OreType.DIAMOND,  rnd,  8,  1);
+        if (chunk.y < 4) generateVein(chunk, OreType.IRON,     rnd,  9, 20);
+        if (chunk.y < g) generateVein(chunk, OreType.GOLD,     rnd,  9,  2);
+        if (chunk.y < 8) generateVein(chunk, OreType.COAL,     rnd, 17, 20);
+        if (chunk.y < 1) generateVein(chunk, OreType.REDSTONE, rnd,  8,  8);
+        if (chunk.y < 2) generateVein(chunk, OreType.LAPIS,    rnd,  7,  1);
+        if (special == Special.OCEAN) {
+            if (chunk.y < 2) generateVein(chunk, OreType.SEA_LANTERN, rnd, 5, 1);
+        } else if (chunk.slime) {
+            if (chunk.y < 2) generateVein(chunk, OreType.SLIME, rnd, 5, 1);
+        } else {
+            if (chunk.y < 1) generateVein(chunk, OreType.EMERALD, rnd, 5, 1);
         }
     }
 
@@ -488,6 +376,15 @@ public class WorldGenerator {
         return false;
     }
 
+    boolean canReplace(Block block) {
+        switch (block.getType()) {
+        case STONE: break;
+        default: return false;
+        }
+        if (plugin.isPlayerPlaced(block)) return false;
+        return true;
+    }
+
     void revealChunkToPlayer(OreChunk chunk, Player player) {
         if (player == null) return;
         World world = getWorld();
@@ -497,11 +394,9 @@ public class WorldGenerator {
                 for (int x = 0; x < OreChunk.SIZE; ++x) {
                     OreType ore = chunk.get(x, y, z);
                     MaterialData mat = ore.getMaterialData();
-                    if (mat != null && !ore.isHidden()) {
+                    if (mat != null) {
                         Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
-                        if (block.getType() == Material.STONE &&
-                            !plugin.isPlayerPlaced(block) &&
-                            isExposedToAir(block)) {
+                        if (canReplace(block) && isExposedToAir(block)) {
                             player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
                         }
                     }
@@ -543,12 +438,12 @@ public class WorldGenerator {
     }
 
     void realize(Block block) {
-        if (block.getType() != Material.STONE) return;
+        if (!canReplace(block)) return;
         if (plugin.isPlayerPlaced(block)) return;
         ChunkCoordinate coord = ChunkCoordinate.of(block);
         OreChunk chunk = getAndGenerate(coord);
         OreType ore = chunk.at(block);
-        if (ore == null || ore.isHidden()) return;
+        if (ore == null) return;
         MaterialData mat = ore.getMaterialData();
         if (mat != null) {
             block.setTypeIdAndData(mat.getItemTypeId(), mat.getData(), false);
@@ -556,16 +451,18 @@ public class WorldGenerator {
     }
 
     Schematic.PasteResult revealDungeon(Block block) {
-        ChunkCoordinate chunkCoord = ChunkCoordinate.of(block);
-        Block zeroBlock = chunkCoord.getBlockAtY(0, getWorld());
-        chunkCoord = ChunkCoordinate.of(zeroBlock);
+        if (dungeonChance <= 0) return null;
+        ChunkCoordinate chunkCoord = new ChunkCoordinate(block.getX() >> 4, 0, block.getZ() >> 0);
         if (revealedDungeons.contains(chunkCoord)) return null;
         revealedDungeons.add(chunkCoord);
+        Block zeroBlock = chunkCoord.getBlockAtY(0, getWorld());
         if (plugin.isPlayerPlaced(zeroBlock)) return null;
         plugin.setPlayerPlaced(zeroBlock);
         OreChunk oreChunk = generatedChunks.get(chunkCoord);
         if (oreChunk == null) oreChunk = OreChunk.of(chunkCoord.getBlock(getWorld()));
         Special special = Special.of(oreChunk.getBiome());
+        int dungeonLevel = getDungeonLevel(oreChunk, special);
+        if (dungeonLevel < 0) return null;
         List<Schematic> schematics = new ArrayList<>();
         String searchTag = special.name().toLowerCase();
         // Add schematics with matching tag
@@ -594,7 +491,6 @@ public class WorldGenerator {
         if (offsetX > 0) offsetX = rnd.nextInt(offsetX + 1);
         if (offsetY > 0) offsetY = rnd.nextInt(offsetY + 1);
         if (offsetZ > 0) offsetZ = rnd.nextInt(offsetZ + 1);
-        int dungeonLevel = getDungeonLevel(oreChunk, special);
         Block revealBlock = chunkCoord.getBlockAtY(dungeonLevel, getWorld()).getRelative(offsetX, 0, offsetZ);
         Schematic.PasteResult pasteResult = schem.paste(revealBlock);
         spawnLoot(pasteResult.getChests());
@@ -683,220 +579,14 @@ public class WorldGenerator {
         return item;
     }
 
-    static final List<MaterialData> FLOOR_OCEAN = Arrays.asList(
-                                                                new MaterialData(Material.PRISMARINE, (byte)1),
-                                                                new MaterialData(Material.PRISMARINE, (byte)2));
-    static final List<MaterialData> FLOOR_DESERT = Arrays.asList(
-                                                                 new MaterialData(Material.MAGMA),
-                                                                 new MaterialData(Material.RED_SANDSTONE),
-                                                                 new MaterialData(Material.HARD_CLAY));
-    static final List<MaterialData> FLOOR_ICE = Arrays.asList(
-                                                              new MaterialData(Material.ICE),
-                                                              new MaterialData(Material.PACKED_ICE));
-    static final List<MaterialData> FLOOR_JUNGLE = Arrays.asList(
-                                                                 new MaterialData(Material.SMOOTH_BRICK),
-                                                                 new MaterialData(Material.SMOOTH_BRICK, (byte)1),
-                                                                 new MaterialData(Material.SMOOTH_BRICK, (byte)2),
-                                                                 new MaterialData(Material.SMOOTH_BRICK, (byte)3));
-    static final List<MaterialData> FLOOR_MUSHROOM = Arrays.asList(
-                                                                   new MaterialData(Material.HUGE_MUSHROOM_1, (byte)14), // All sides
-                                                                   new MaterialData(Material.HUGE_MUSHROOM_2, (byte)14));
-    static final List<MaterialData> FLOOR_DEFAULT = Arrays.asList(
-                                                                  new MaterialData(Material.COBBLESTONE),
-                                                                  new MaterialData(Material.MOSSY_COBBLESTONE));
-
-    void revealMiniCave(Block block) {
-        LinkedList<Block> todo = new LinkedList<>();
-        Set<Block> found = new HashSet<>();
-        Set<Block> done = new HashSet<>();
-        todo.add(block);
-        while (!todo.isEmpty() && found.size() < 1000) {
-            Block doBlock = todo.removeFirst();
-            if ((doBlock.getType() == Material.STONE ||
-                 doBlock.getType() == Material.AIR) &&
-                !plugin.isPlayerPlaced(doBlock) &&
-                getOreAt(doBlock) == OreType.MINI_CAVE) {
-                found.add(doBlock);
-                for (BlockFace dir: NBORS) {
-                    Block nborBlock = doBlock.getRelative(dir);
-                    if (!done.contains(nborBlock)) {
-                        todo.add(nborBlock);
-                        done.add(nborBlock);
-                    }
-                }
-            }
-        }
-        Special special = Special.of(block.getBiome());
-        List<MaterialData> floorBlocks;
-        if (special == Special.OCEAN) {
-            floorBlocks = FLOOR_OCEAN;
-        } else if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
-            floorBlocks = FLOOR_DESERT;
-        } else if (special == Special.ICE) {
-            floorBlocks = FLOOR_ICE;
-        } else if (special == Special.JUNGLE) {
-            floorBlocks = FLOOR_JUNGLE;
-        } else if (special == Special.FOREST || special == Special.MUSHROOM) {
-            floorBlocks = FLOOR_MUSHROOM;
-        } else {
-            floorBlocks = FLOOR_DEFAULT;
-        }
-        Set<Block> addLater = new HashSet<>();
-        for (Block foundBlock: found) {
-            if (!found.contains(foundBlock.getRelative(BlockFace.DOWN))) {
-                // Set floor
-                MaterialData mat = floorBlocks.get(random.nextInt(floorBlocks.size()));
-                foundBlock.setTypeIdAndData(mat.getItemTypeId(), mat.getData(), true);
-                // Try to expand to 3 height
-                for (int i = 0; i < 3; ++i) {
-                    Block laterBlock = foundBlock.getRelative(BlockFace.UP, i + 1);
-                    if (!found.contains(laterBlock) &&
-                        (laterBlock.getType() == Material.STONE ||
-                         laterBlock.getType() == Material.AIR) &&
-                        !plugin.isPlayerPlaced(laterBlock)) {
-                        laterBlock.setType(Material.AIR, false);
-                        addLater.add(laterBlock);
-                    }
-                }
-            } else {
-                foundBlock.setType(Material.AIR, false);
-            }
-        }
-        found.addAll(addLater);
-        int spawnerCount = special != Special.ICE ? random.nextInt(3) : 0;
-        int mobCount = 1 + random.nextInt(5);
-        int chestCount = random.nextInt(2);
-        List<Block> blockList = new ArrayList<>(found);
-        List<Chest> chests = new ArrayList<>(chestCount);
-        Collections.shuffle(blockList, random);
-        for (Block foundBlock: blockList) {
-            if (!found.contains(foundBlock.getRelative(BlockFace.DOWN)) &&
-                found.contains(foundBlock.getRelative(BlockFace.UP, 1)) &&
-                found.contains(foundBlock.getRelative(BlockFace.UP, 2))) {
-                if (spawnerCount > 0) {
-                    spawnerCount -= 1;
-                    Block spawnerBlock = foundBlock.getRelative(0, 1 + random.nextInt(2), 0);
-                    spawnerBlock.setType(Material.MOB_SPAWNER);
-                    CreatureSpawner state = (CreatureSpawner)spawnerBlock.getState();
-                    if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
-                        switch (random.nextInt(2)) {
-                        case 0: state.setSpawnedType(EntityType.BLAZE); break;
-                        case 1: state.setSpawnedType(EntityType.HUSK); break;
-                        }
-                    } else if (special == Special.ICE) {
-                        switch (random.nextInt(5)) {
-                        case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
-                        case 1: state.setSpawnedType(EntityType.STRAY); break;
-                        case 2: state.setSpawnedType(EntityType.SPIDER); break;
-                        case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
-                        case 4: state.setSpawnedType(EntityType.CREEPER); break;
-                        }
-                    } else {
-                        switch (random.nextInt(5)) {
-                        case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
-                        case 1: state.setSpawnedType(EntityType.SKELETON); break;
-                        case 2: state.setSpawnedType(EntityType.SPIDER); break;
-                        case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
-                        case 4: state.setSpawnedType(EntityType.CREEPER); break;
-                        }
-                    }
-                } else if (mobCount > 0) {
-                    mobCount -= 1;
-                    Block baseBlock = foundBlock.getRelative(0, 1, 0);
-                    Location loc = baseBlock.getLocation().add(0.5, 0.0, 0.5);
-                    if (special == Special.ICE) {
-                            switch (random.nextInt(3)) {
-                            case 0:
-                                PolarBear polarBear = foundBlock.getWorld().spawn(loc, PolarBear.class);
-                                if (miniCaveHasSpaceForFatMob(found, baseBlock)) {
-                                    polarBear.setAdult();
-                                } else {
-                                    polarBear.setBaby();
-                                }
-                                break;
-                            case 1:
-                                polarBear = foundBlock.getWorld().spawn(loc, PolarBear.class);
-                                polarBear.setBaby();
-                                break;
-                            case 2:
-                                Stray stray = foundBlock.getWorld().spawn(loc, Stray.class);
-                                break;
-                            }
-                    } else {
-                        EntityType et = randomEntityType(special);
-                        if (et != EntityType.SPIDER || miniCaveHasSpaceForFatMob(found, baseBlock)) {
-                            foundBlock.getWorld().spawnEntity(loc, et);
-                        }
-                    }
-                } else if (chestCount > 0) {
-                    chestCount -= 1;
-                    Block chestBlock = foundBlock.getRelative(0, 1, 0);
-                    chestBlock.setType(Material.CHEST);
-                    Chest chest = (Chest)chestBlock.getState();
-                    chests.add(chest);
-                }
-            }
-        }
-        // Reveal walls
-        for (Block foundBlock: found) {
-            for (BlockFace dir: NBORS) {
-                Block nbor = foundBlock.getRelative(dir);
-                if (!found.contains(nbor)) reveal(nbor);
-            }
-        }
-        // Fill chests
-        spawnLoot(chests);
-    }
-
-    final static BlockFace[] HOR = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.NORTH_WEST, BlockFace.NORTH_EAST, BlockFace.SOUTH_EAST, BlockFace.SOUTH_WEST};
-    private boolean miniCaveHasSpaceForFatMob(Set<Block> found, Block block) {
-        for (BlockFace face: HOR) {
-            if (!found.contains(block.getRelative(face))) return false;
-        }
-        return true;
-    }
-
-    final static EntityType[] ENT = {
-        EntityType.ZOMBIE,
-        EntityType.ZOMBIE,
-        EntityType.ZOMBIE,
-        EntityType.SKELETON,
-        EntityType.SKELETON,
-        EntityType.SPIDER,
-        EntityType.SPIDER,
-        EntityType.CREEPER,
-        EntityType.WITCH,
-        EntityType.CAVE_SPIDER,
-        EntityType.SILVERFISH,
-        EntityType.SLIME,
-        EntityType.VINDICATOR,
-        EntityType.EVOKER,
-        EntityType.OCELOT,
-        EntityType.WOLF
-    };
-    final static EntityType[] ENT_DESERT = {
-        EntityType.MAGMA_CUBE,
-        EntityType.PIG_ZOMBIE,
-        EntityType.BLAZE,
-        EntityType.HUSK
-    };
-    EntityType randomEntityType(Special special) {
-        if (special == Special.DESERT || special == Special.MESA || special == Special.SAVANNA) {
-            return ENT_DESERT[random.nextInt(ENT_DESERT.length)];
-        } else {
-            return ENT[random.nextInt(ENT.length)];
-        }
-    }
-
     void reveal(Block block) {
         ChunkCoordinate coord = ChunkCoordinate.of(block);
         OreChunk chunk = getOrGenerate(coord);
         if (chunk == null) return;
         OreType ore = chunk.at(block);
-        if (ore.isHidden()) return;
-        MaterialData mat = ore.getMaterialData();
+        MaterialData mat = ore.materialData;
         if (mat == null) return;
-        if (block.getType() != Material.STONE) return;
+        if (!canReplace(block)) return;
         if (plugin.isPlayerPlaced(block)) return;
         for (Player player: block.getWorld().getPlayers()) {
             if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= chunkRevealRadiusSquared) {

@@ -55,23 +55,7 @@ public class OreListener implements Listener {
         final Block block = event.getBlock();
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
-        if (placedBlocks.contains(block)) return;
-        if (block.getType() != Material.STONE) return;
-        if (plugin.isPlayerPlaced(block)) return;
-        OreType oreType = worldGen.getOreAt(block);
-        if (oreType == OreType.MINI_CAVE) {
-            worldGen.revealMiniCave(block);
-            block.getWorld().playSound(block.getLocation().add(0.5, 0.5, 0.5), Sound.BLOCK_ANVIL_BREAK, 1.0f, 1.0f);
-        } else if (oreType == OreType.DUNGEON) {
-            Schematic.PasteResult pasteResult = worldGen.revealDungeon(block);
-            if (pasteResult != null) {
-                if (worldGen.debug) {
-                    OrePlugin.getInstance().getLogger().info("Dungeon " + pasteResult.getSchematic().getName() + "(" + pasteResult.getChests().size() + " chests) revealed for " + event.getPlayer().getName() + " at " + block.getWorld().getName() + " " + pasteResult.getSourceBlock().getX() + " " + pasteResult.getSourceBlock().getY() + " " + pasteResult.getSourceBlock().getZ() + " rot=" + pasteResult.getSchematic().getRotation());
-                }
-                DungeonRevealEvent dungeonRevealEvent = new DungeonRevealEvent(event.getPlayer(), pasteResult.getSchematic(), pasteResult.getSourceBlock(), pasteResult.getChests());
-                plugin.getServer().getPluginManager().callEvent(dungeonRevealEvent);
-            }
-        }
+        worldGen.revealDungeon(block);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.NORMAL)
@@ -120,7 +104,6 @@ public class OreListener implements Listener {
         Block block = event.getSpawner().getBlock();
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
-        if (plugin.isPlayerPlaced(block)) return;
         worldGen.onSpawnerSpawn(block);
     }
 

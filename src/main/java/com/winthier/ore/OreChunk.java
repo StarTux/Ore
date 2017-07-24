@@ -12,17 +12,15 @@ class OreChunk {
     final static int SIZE = 16;
     final int x, y, z;
     final Biome biome;
+    final boolean slime;
     final OreType[] ores = new OreType[SIZE * SIZE * SIZE];
     long lastUse = System.currentTimeMillis();
 
     static OreChunk of(Block block) {
-        int x = block.getX();
-        int y = block.getY();
-        int z = block.getZ();
-        int rx = x < 0 ? (x + 1) / SIZE - 1 : x / SIZE;
-        int ry = y < 0 ? (y + 1) / SIZE - 1 : y / SIZE;
-        int rz = z < 0 ? (z + 1) / SIZE - 1 : z / SIZE;
-        return new OreChunk(rx, ry, rz, block.getBiome());
+        int x = block.getX() >> 4;
+        int y = block.getY() >> 4;
+        int z = block.getZ() >> 4;
+        return new OreChunk(x, y, z, block.getBiome(), block.getChunk().isSlimeChunk());
     }
 
     void set(int x, int y, int z, OreType ore) {
