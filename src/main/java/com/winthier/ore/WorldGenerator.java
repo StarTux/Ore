@@ -192,8 +192,7 @@ public class WorldGenerator {
             todo.add(new Vec3(rnd.nextInt(16), rnd.nextInt(16), rnd.nextInt(16)));
         }
         while (!todo.isEmpty() && found.size() < size) {
-            Collections.shuffle(todo, rnd);
-            Vec3 vec = todo.remove(todo.size() - 1);
+            Vec3 vec = todo.remove(rnd.nextInt(todo.size());
             done.add(vec);
             if (chunk.get(vec.x, vec.y, vec.z) != OreType.NONE) continue;
             found.add(vec);
