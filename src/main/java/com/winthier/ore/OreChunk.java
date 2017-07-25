@@ -17,10 +17,10 @@ class OreChunk {
     long lastUse = System.currentTimeMillis();
 
     static OreChunk of(Block block) {
-        int x = block.getX() >> 4;
-        int y = block.getY() >> 4;
-        int z = block.getZ() >> 4;
-        return new OreChunk(x, y, z, block.getBiome(), block.getChunk().isSlimeChunk());
+        return new OreChunk(block.getX() >> 4,
+                            block.getY() >> 4,
+                            block.getZ() >> 4,
+                            block.getBiome(), block.getChunk().isSlimeChunk());
     }
 
     void set(int x, int y, int z, OreType ore) {

@@ -1,6 +1,5 @@
 package com.winthier.ore;
 
-import com.winthier.ore.event.DungeonRevealEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -55,7 +54,14 @@ public class OreListener implements Listener {
         final Block block = event.getBlock();
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
-        worldGen.revealDungeon(block);
+        Schematic.PasteResult pasteResult = worldGen.revealDungeon(block);
+        if (pasteResult != null) {
+            if (worldGen.debug) {
+                OrePlugin.getInstance().getLogger().info("Dungeon " + pasteResult.getSchematic().getName() + "(" + pasteResult.getChests().size() + " chests) revealed for " + event.getPlayer().getName() + " at " + block.getWorld().getName() + " " + pasteResult.getSourceBlock().getX() + " " + pasteResult.getSourceBlock().getY() + " " + pasteResult.getSourceBlock().getZ() + " (" + (pasteResult.getSourceBlock().getX() >> 4) + "," + (pasteResult.getSourceBlock().getZ() >> 4) + ") rot=" + pasteResult.getSchematic().getRotation());
+            }
+            DungeonRevealEvent dungeonRevealEvent = new DungeonRevealEvent(event.getPlayer(), pasteResult.getSchematic(), pasteResult.getSourceBlock(), pasteResult.getChests());
+            plugin.getServer().getPluginManager().callEvent(dungeonRevealEvent);
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.NORMAL)

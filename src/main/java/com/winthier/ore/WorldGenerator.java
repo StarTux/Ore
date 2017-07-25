@@ -451,8 +451,22 @@ public class WorldGenerator {
     }
 
     Schematic.PasteResult revealDungeon(Block block) {
+        ChunkCoordinate chunkCoord = new ChunkCoordinate(block.getX() >> 4, 0, block.getZ() >> 4);
+        Schematic.PasteResult result = revealDungeon(chunkCoord);
+        if (result != null) return result;
+        result = revealDungeon(chunkCoord.getRelative(1, 0, 0));
+        if (result != null) return result;
+        result = revealDungeon(chunkCoord.getRelative(-1, 0, 0));
+        if (result != null) return result;
+        result = revealDungeon(chunkCoord.getRelative(0, 0, 1));
+        if (result != null) return result;
+        result = revealDungeon(chunkCoord.getRelative(0, 0, -1));
+        if (result != null) return result;
+        return null;
+    }
+
+    Schematic.PasteResult revealDungeon(ChunkCoordinate chunkCoord) {
         if (dungeonChance <= 0) return null;
-        ChunkCoordinate chunkCoord = new ChunkCoordinate(block.getX() >> 4, 0, block.getZ() >> 0);
         if (revealedDungeons.contains(chunkCoord)) return null;
         revealedDungeons.add(chunkCoord);
         Block zeroBlock = chunkCoord.getBlockAtY(0, getWorld());
@@ -495,7 +509,7 @@ public class WorldGenerator {
         Schematic.PasteResult pasteResult = schem.paste(revealBlock);
         spawnLoot(pasteResult.getChests());
         Block centerBlock = revealBlock.getRelative(schem.getSizeX()/2, schem.getSizeY()/2, schem.getSizeZ()/2);
-        block.getWorld().playSound(centerBlock.getLocation().add(0.5, 0.5, 0.5), Sound.AMBIENT_CAVE, 1.0f, 1.0f);
+        centerBlock.getWorld().playSound(centerBlock.getLocation().add(0.5, 0.5, 0.5), Sound.AMBIENT_CAVE, 1.0f, 1.0f);
         return pasteResult;
     }
 

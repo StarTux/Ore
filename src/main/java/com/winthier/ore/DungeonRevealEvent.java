@@ -1,4 +1,4 @@
-package com.winthier.ore.event;
+package com.winthier.ore;
 
 import com.winthier.ore.Schematic;
 import java.util.List;
