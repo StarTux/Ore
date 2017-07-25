@@ -1,9 +1,6 @@
 worlds:
   Example:
     Enabled: false
-    GenerateHotspots: false
-    SpecialBiomes: false
-    MiniCaves: false
     Dungeons: 50
     Seed: 1234567890
     SpawnerLimit: 0

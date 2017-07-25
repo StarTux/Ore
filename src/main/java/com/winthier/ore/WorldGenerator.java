@@ -124,8 +124,6 @@ public class WorldGenerator {
     }
 
     private boolean shouldStop = false;
-    private boolean enableSpecialBiomes = false;
-    private boolean enableMiniCaves = false;
     private int dungeonChance = 0;
     private long seed; // Defaults to world seed
     private int spawnerLimit = 0;
@@ -135,14 +133,12 @@ public class WorldGenerator {
 
     // Call once!
     void configure(ConfigurationSection config) {
-        enableSpecialBiomes = config.getBoolean("SpecialBiomes", enableSpecialBiomes);
-        enableMiniCaves = config.getBoolean("MiniCaves", enableMiniCaves);
         dungeonChance = config.getInt("Dungeons", dungeonChance);
         seed = config.getLong("Seed", seed);
         spawnerLimit = config.getInt("SpawnerLimit", spawnerLimit);
         debug = config.getBoolean("Debug", debug);
         Random random = new Random(seed);
-        plugin.getLogger().info("Loaded world " + worldName + " SpecialBiomes=" + enableSpecialBiomes + " MiniCaves=" + enableMiniCaves + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
+        plugin.getLogger().info("Loaded world " + worldName + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
         if (config.getBoolean("Halloween", false)) {
             halloween = new Halloween(this);
             plugin.getLogger().info("Halloween enabled in " + worldName);
