@@ -92,7 +92,7 @@ public class OreCommand implements CommandExecutor {
         } else if (firstArg.equals("dungeon")) {
             WorldGenerator worldGen = OrePlugin.getInstance().generators.get(player.getWorld().getName());
             OreChunk chunk = OreChunk.of(player.getLocation().getBlock());
-            int result = worldGen.getDungeonLevel(chunk, WorldGenerator.Special.of(chunk.getBiome()));
+            WorldGenerator.Vec3 result = worldGen.getDungeonOffset(chunk, WorldGenerator.Special.of(chunk.getBiome()));
             player.sendMessage("Dungeon=" + result);
         } else if (firstArg.equals("copydungeon") && args.length >= 2) {
             if (player == null) return false;

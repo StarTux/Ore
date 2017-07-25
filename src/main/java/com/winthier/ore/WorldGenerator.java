@@ -173,11 +173,13 @@ public class WorldGenerator {
      * @return -1 if this chunk does not contain a dungeon,
      * positive number for the y level of the dungeon.
      */
-    int getDungeonLevel(OreChunk chunk, Special special) {
-        if (special == Special.OCEAN) return -1;
+    Vec3 getDungeonOffset(OreChunk chunk, Special special) {
+        if (special == Special.OCEAN) return null;
         Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, seed).hashCode());
-        if (dungeonChance < 100 && rnd.nextInt(100) >= dungeonChance) return -1;
-        return 5 + rnd.nextInt(32);
+        if (dungeonChance < 100 && rnd.nextInt(100) >= dungeonChance) return null;
+        return new Vec3(rnd.nextInt(16) - 8,
+                        rnd.nextInt(32) + 4,
+                        rnd.nextInt(16) - 8);
     }
 
     boolean generateVein(OreChunk chunk, OreType ore, Random rnd, int size) {
@@ -236,7 +238,6 @@ public class WorldGenerator {
     @Value final static class ChunkSeed { final int x, y, z; final long seed; }
     void generate(OreChunk chunk) {
         Special special = Special.of(chunk.getBiome());
-        int dungeonLevel = dungeonChance > 0 ? getDungeonLevel(chunk, special) : -1;
         Random rnd = new Random(new ChunkSeed(chunk.x, chunk.y, chunk.z, seed).hashCode());
         int g = special == Special.MESA ? 4 : 2;
         if (chunk.y < 1) generateVein(chunk, OreType.DIAMOND,  rnd,  8,  1);
@@ -458,6 +459,14 @@ public class WorldGenerator {
         if (result != null) return result;
         result = revealDungeon(chunkCoord.getRelative(0, 0, -1));
         if (result != null) return result;
+        result = revealDungeon(chunkCoord.getRelative(1, 0, -1));
+        if (result != null) return result;
+        result = revealDungeon(chunkCoord.getRelative(1, 0, 1));
+        if (result != null) return result;
+        result = revealDungeon(chunkCoord.getRelative(-1, 0, 1));
+        if (result != null) return result;
+        result = revealDungeon(chunkCoord.getRelative(-1, 0, -1));
+        if (result != null) return result;
         return null;
     }
 
@@ -471,8 +480,8 @@ public class WorldGenerator {
         OreChunk oreChunk = generatedChunks.get(chunkCoord);
         if (oreChunk == null) oreChunk = OreChunk.of(chunkCoord.getBlock(getWorld()));
         Special special = Special.of(oreChunk.getBiome());
-        int dungeonLevel = getDungeonLevel(oreChunk, special);
-        if (dungeonLevel < 0) return null;
+        Vec3 dungeonOffset = getDungeonOffset(oreChunk, special);
+        if (dungeonOffset == null) return null;
         List<Schematic> schematics = new ArrayList<>();
         String searchTag = special.name().toLowerCase();
         // Add schematics with matching tag
@@ -495,13 +504,7 @@ public class WorldGenerator {
         Schematic schem = schematics.get(rnd.nextInt(schematics.size()));
         int rotation = rnd.nextInt(4);
         for (int i = 0; i < rotation; ++i) schem = schem.rotate();
-        int offsetX = OreChunk.SIZE - schem.getSizeX();
-        int offsetY = OreChunk.SIZE - schem.getSizeY();
-        int offsetZ = OreChunk.SIZE - schem.getSizeZ();
-        if (offsetX > 0) offsetX = rnd.nextInt(offsetX + 1);
-        if (offsetY > 0) offsetY = rnd.nextInt(offsetY + 1);
-        if (offsetZ > 0) offsetZ = rnd.nextInt(offsetZ + 1);
-        Block revealBlock = chunkCoord.getBlockAtY(dungeonLevel, getWorld()).getRelative(offsetX, 0, offsetZ);
+        Block revealBlock = chunkCoord.getBlockAtY(0, getWorld()).getRelative(dungeonOffset.x, dungeonOffset.y, dungeonOffset.z);
         Schematic.PasteResult pasteResult = schem.paste(revealBlock);
         spawnLoot(pasteResult.getChests());
         Block centerBlock = revealBlock.getRelative(schem.getSizeX()/2, schem.getSizeY()/2, schem.getSizeZ()/2);
