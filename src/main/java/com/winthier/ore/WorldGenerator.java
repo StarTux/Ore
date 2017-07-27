@@ -45,7 +45,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 public class WorldGenerator {
     final OrePlugin plugin;
     final String worldName;
-    final int chunkRevealRadius = 3;
+    final int chunkRevealRadius = 2;
     final int chunkRevealRadiusSquared = chunkRevealRadius * chunkRevealRadius;
     final Random random = new Random(System.currentTimeMillis());
     final static BlockFace[] NBORS = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
@@ -115,8 +115,6 @@ public class WorldGenerator {
         }
     }
 
-    @Value static final class Vec3{final int x, y, z;}
-    @Value static final class Vec2{final int x, y;}
     @Value
     static class LootItem {
         ItemStack item;
@@ -183,14 +181,11 @@ public class WorldGenerator {
     }
 
     boolean generateVein(OreChunk chunk, OreType ore, Random rnd, int size) {
+        if (chunk.empties.isEmpty()) return false;
         List<Vec3> todo = new ArrayList<>(size);
         List<Vec3> found = new ArrayList<>(size);
         Set<Vec3> done = new HashSet<>();
-        if (chunk.y == 0) {
-            todo.add(new Vec3(rnd.nextInt(16), 5 + rnd.nextInt(11), rnd.nextInt(16)));
-        } else {
-            todo.add(new Vec3(rnd.nextInt(16), rnd.nextInt(16), rnd.nextInt(16)));
-        }
+        todo.add(chunk.empties.remove(rnd.nextInt(chunk.empties.size())));
         while (!todo.isEmpty() && found.size() < size) {
             Vec3 vec = todo.remove(rnd.nextInt(todo.size()));
             done.add(vec);
@@ -221,16 +216,16 @@ public class WorldGenerator {
                 if (!done.contains(a)) todo.add(a);
             }
         }
-        if (found.isEmpty()) return false;
         for (Vec3 vec: found) {
             chunk.set(vec.x, vec.y, vec.z, ore);
         }
+        chunk.empties.removeAll(found);
         return true;
     }
 
     void generateVein(OreChunk chunk, OreType ore, Random rnd, int size, int tries) {
         for (int i = 0; i < tries; i += 1) {
-            if (generateVein(chunk, ore, rnd, size)) return;
+            generateVein(chunk, ore, rnd, size);
         }
     }
 
@@ -239,9 +234,9 @@ public class WorldGenerator {
         Special special = Special.of(chunk.getBiome());
         Random rnd = new Random(new ChunkSeed(chunk.x, chunk.y, chunk.z, seed).hashCode());
         int g = special == Special.MESA ? 4 : 2;
-        if (chunk.y < 8) generateVein(chunk, OreType.COAL,     rnd, 17, 20);
-        if (chunk.y < 4) generateVein(chunk, OreType.IRON,     rnd,  9, 20);
-        if (chunk.y < g) generateVein(chunk, OreType.GOLD,     rnd,  9,  2);
+        if (chunk.y < 8) generateVein(chunk, OreType.COAL,     rnd, 17,  5);
+        if (chunk.y < 4) generateVein(chunk, OreType.IRON,     rnd,  9,  5);
+        if (chunk.y < g) generateVein(chunk, OreType.GOLD,     rnd,  9,  1);
         if (chunk.y < 1) generateVein(chunk, OreType.REDSTONE, rnd,  8,  8);
         if (chunk.y < 1) generateVein(chunk, OreType.DIAMOND,  rnd,  8,  1);
         if (chunk.y < 2) generateVein(chunk, OreType.LAPIS,    rnd,  7,  1);
@@ -250,7 +245,7 @@ public class WorldGenerator {
         } else if (chunk.slime) {
             if (chunk.y < 2) generateVein(chunk, OreType.SLIME, rnd, 5, 1);
         } else {
-            if (chunk.y < 1) generateVein(chunk, OreType.EMERALD, rnd, 5, 1);
+            if (chunk.y < 1) generateVein(chunk, OreType.EMERALD, rnd, 3, 1);
         }
     }
 

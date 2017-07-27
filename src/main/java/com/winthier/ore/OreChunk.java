@@ -1,13 +1,13 @@
 package com.winthier.ore;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 
 @Getter
-@RequiredArgsConstructor
 class OreChunk {
     final static int SIZE = 16;
     final int x, y, z;
@@ -15,6 +15,23 @@ class OreChunk {
     final boolean slime;
     final OreType[] ores = new OreType[SIZE * SIZE * SIZE];
     long lastUse = System.currentTimeMillis();
+    final List<Vec3> empties = new ArrayList<>();
+
+    OreChunk(int x, int y, int z, Biome biome, boolean slime) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.biome = biome;
+        this.slime = slime;
+        int sy = y == 0 ? 5 : 0;
+        for (int cy = sy; cy < 16; cy += 1) {
+            for (int cz = 0; cz < 16; cz += 1) {
+                for (int cx = 0; cx < 16; cx += 1) {
+                    empties.add(new Vec3(cx, cy, cz));
+                }
+            }
+        }
+    }
 
     static OreChunk of(Block block) {
         return new OreChunk(block.getX() >> 4,
