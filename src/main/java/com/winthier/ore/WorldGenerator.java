@@ -192,7 +192,7 @@ public class WorldGenerator {
             todo.add(new Vec3(rnd.nextInt(16), rnd.nextInt(16), rnd.nextInt(16)));
         }
         while (!todo.isEmpty() && found.size() < size) {
-            Vec3 vec = todo.remove(rnd.nextInt(todo.size());
+            Vec3 vec = todo.remove(rnd.nextInt(todo.size()));
             done.add(vec);
             if (chunk.get(vec.x, vec.y, vec.z) != OreType.NONE) continue;
             found.add(vec);
@@ -221,7 +221,7 @@ public class WorldGenerator {
                 if (!done.contains(a)) todo.add(a);
             }
         }
-        if (found.size() < size / 2) return false;
+        if (found.isEmpty()) return false;
         for (Vec3 vec: found) {
             chunk.set(vec.x, vec.y, vec.z, ore);
         }
@@ -239,11 +239,11 @@ public class WorldGenerator {
         Special special = Special.of(chunk.getBiome());
         Random rnd = new Random(new ChunkSeed(chunk.x, chunk.y, chunk.z, seed).hashCode());
         int g = special == Special.MESA ? 4 : 2;
-        if (chunk.y < 1) generateVein(chunk, OreType.DIAMOND,  rnd,  8,  1);
+        if (chunk.y < 8) generateVein(chunk, OreType.COAL,     rnd, 17, 20);
         if (chunk.y < 4) generateVein(chunk, OreType.IRON,     rnd,  9, 20);
         if (chunk.y < g) generateVein(chunk, OreType.GOLD,     rnd,  9,  2);
-        if (chunk.y < 8) generateVein(chunk, OreType.COAL,     rnd, 17, 20);
         if (chunk.y < 1) generateVein(chunk, OreType.REDSTONE, rnd,  8,  8);
+        if (chunk.y < 1) generateVein(chunk, OreType.DIAMOND,  rnd,  8,  1);
         if (chunk.y < 2) generateVein(chunk, OreType.LAPIS,    rnd,  7,  1);
         if (special == Special.OCEAN) {
             if (chunk.y < 2) generateVein(chunk, OreType.SEA_LANTERN, rnd, 5, 1);
@@ -374,7 +374,9 @@ public class WorldGenerator {
 
     boolean canReplace(Block block) {
         switch (block.getType()) {
-        case STONE: break;
+        case STONE:
+            if (block.getData() > 0) return false;
+            break;
         default: return false;
         }
         if (plugin.isPlayerPlaced(block)) return false;
