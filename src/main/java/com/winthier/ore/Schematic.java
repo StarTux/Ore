@@ -382,7 +382,6 @@ public final class Schematic {
                     case LADDER:
                         Facing facing = Facing.ofBlockData(aData);
                         if (facing != null) {
-                            System.out.println("HERE");
                             aData = facing.rotate().dataBlock;
                         }
                         break;
