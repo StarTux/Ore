@@ -378,44 +378,54 @@ public final class Schematic {
                     int aData = data.get(oldIndex);
                     // Rotate if necessary
                     Material mat = Material.getMaterial(aId);
-                    MaterialData matData = mat.getNewData((byte)aData);
-                    if (matData instanceof Vine) {
-                        Vine vine = (Vine)matData;
-                        Vine vine2 = new Vine();
-                        for (BlockFace face: NBORS) {
-                            if (vine.isOnFace(face)) {
-                                if (needsRotation(face)) {
-                                    vine2.putOnFace(rotate(face).getOppositeFace());
-                                } else {
-                                    vine2.putOnFace(face);
+                    switch (mat) {
+                    case LADDER:
+                        Facing facing = Facing.ofBlockData(aData);
+                        if (facing != null) {
+                            System.out.println("HERE");
+                            aData = facing.rotate().dataBlock;
+                        }
+                        break;
+                    default:
+                        MaterialData matData = mat.getNewData((byte)aData);
+                        if (matData instanceof Vine) {
+                            Vine vine = (Vine)matData;
+                            Vine vine2 = new Vine();
+                            for (BlockFace face: NBORS) {
+                                if (vine.isOnFace(face)) {
+                                    if (needsRotation(face)) {
+                                        vine2.putOnFace(rotate(face).getOppositeFace());
+                                    } else {
+                                        vine2.putOnFace(face);
+                                    }
                                 }
                             }
-                        }
-                        aData = vine2.getData();
-                    } else if (matData instanceof Mushroom) {
-                        Mushroom mush = (Mushroom)matData;
-                        if (!mush.isStem()) {
-                            Mushroom mush2 = new Mushroom(mush.getItemType());
-                            for (BlockFace face: mush.getPaintedFaces()) {
-                                if (needsRotation(face)) {
-                                    mush2.setFacePainted(rotate(face).getOppositeFace(), true);
-                                } else {
-                                    mush2.setFacePainted(face, true);
+                            aData = vine2.getData();
+                        } else if (matData instanceof Mushroom) {
+                            Mushroom mush = (Mushroom)matData;
+                            if (!mush.isStem()) {
+                                Mushroom mush2 = new Mushroom(mush.getItemType());
+                                for (BlockFace face: mush.getPaintedFaces()) {
+                                    if (needsRotation(face)) {
+                                        mush2.setFacePainted(rotate(face).getOppositeFace(), true);
+                                    } else {
+                                        mush2.setFacePainted(face, true);
+                                    }
                                 }
+                                aData = mush2.getData();
                             }
-                            aData = mush2.getData();
-                        }
-                    } else if (matData instanceof Attachable) {
-                        Attachable attach = (Attachable)matData;
-                        if (needsRotation(attach.getAttachedFace())) {
-                            attach.setFacingDirection(rotate(attach.getAttachedFace()));
-                            aData = matData.getData();
-                        }
-                    } else if (matData instanceof Directional) {
-                        Directional direct = (Directional)matData;
-                        if (needsRotation(direct.getFacing())) {
-                            direct.setFacingDirection(rotate(direct.getFacing()));
-                            aData = matData.getData();
+                        } else if (matData instanceof Attachable) {
+                            Attachable attach = (Attachable)matData;
+                            if (needsRotation(attach.getAttachedFace())) {
+                                attach.setFacingDirection(rotate(attach.getAttachedFace()));
+                                aData = matData.getData();
+                            }
+                        } else if (matData instanceof Directional) {
+                            Directional direct = (Directional)matData;
+                            if (needsRotation(direct.getFacing())) {
+                                direct.setFacingDirection(rotate(direct.getFacing()));
+                                aData = matData.getData();
+                            }
                         }
                     }
                     // Paste
