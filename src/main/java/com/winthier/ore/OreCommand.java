@@ -21,6 +21,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
 
 public class OreCommand implements CommandExecutor {
+    private final Map<UUID, String> impostors = new HashMap<>();
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         Player player = sender instanceof Player ? (Player)sender : null;
@@ -94,6 +96,15 @@ public class OreCommand implements CommandExecutor {
             OreChunk chunk = OreChunk.of(player.getLocation().getBlock());
             Vec3 result = worldGen.getDungeonOffset(chunk, WorldGenerator.Special.of(chunk.getBiome()));
             player.sendMessage("Dungeon=" + result);
+        } else if (firstArg.equals("iam") && args.length <= 2) {
+            if (args.length == 2) {
+                String name = args[1];
+                impostors.put(player.getUniqueId(), name);
+                player.sendMessage("Saving dungeons under the name " + name);
+            } else {
+                String oldname = impostors.remove(player.getUniqueId());
+                player.sendMessage("No longer saving dungeons under the name " + oldname);
+            }
         } else if (firstArg.equals("copydungeon") && args.length >= 2) {
             if (player == null) return false;
             WorldEditPlugin we = getWorldEdit();
@@ -107,10 +118,12 @@ public class OreCommand implements CommandExecutor {
             Block b = sel.getMaximumPoint().getBlock();
             List<String> tags = new ArrayList<>();
             for (int i = 2; i < args.length; ++i) tags.add(args[i]);
-            String name = args[1];
+            String user = impostors.get(player.getUniqueId());
+            if (user == null) user = player.getName();
+            String name = user + "." + args[1];
             Schematic schem = Schematic.copy(a, b, name, tags);
             schem.save(OrePlugin.getInstance().getDungeonSchematicFile(name));
-            player.sendMessage("Saved dungeon schematic '" + name + "'");
+            player.sendMessage("Saved dungeon schematic '" + name + "' with tags " + tags);
         } else if (firstArg.equals("pastedungeon") && args.length >= 2) {
             String name = args[1];
             Schematic schem = Schematic.load(OrePlugin.getInstance().getDungeonSchematicFile(name));
