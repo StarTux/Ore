@@ -222,7 +222,12 @@ public final class Schematic {
         Collections.sort(blockSetters);
         for (BlockSetter blockSetter: blockSetters) blockSetter.block.setType(Material.AIR, false);
         for (BlockSetter blockSetter: blockSetters) {
-            blockSetter.update(rnd);
+            try {
+                blockSetter.update(rnd);
+            } catch (Exception e) {
+                System.err.println("Error setting block " + blockSetter.block);
+                e.printStackTrace();
+            }
             Material material = blockSetter.getMaterial();
             if (material == Material.CHEST || material == Material.TRAPPED_CHEST) {
                 chests.add((Chest)blockSetter.getBlock().getState());
