@@ -485,7 +485,7 @@ public class WorldGenerator {
             if (schem.getTags().contains(searchTag)) schematics.add(schem);
         }
         // If empty, add schematics without the default tags, or without any tags
-        if (schematics.isEmpty()) {
+        if (schematics.size() <= 3) {
             for (Schematic schem: plugin.getDungeonSchematics().values()) {
                 if (schem.getTags().isEmpty()) schematics.add(schem);
                 else if (schem.getTags().contains("default")) schematics.add(schem);

@@ -4,23 +4,26 @@ import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.bukkit.selections.Selection;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.Value;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.material.MaterialData;
 
-public class OreCommand implements CommandExecutor {
+public class OreCommand implements TabExecutor {
     private final Map<UUID, String> impostors = new HashMap<>();
 
     @Override
@@ -117,12 +120,29 @@ public class OreCommand implements CommandExecutor {
             Block a = sel.getMinimumPoint().getBlock();
             Block b = sel.getMaximumPoint().getBlock();
             List<String> tags = new ArrayList<>();
-            for (int i = 2; i < args.length; ++i) tags.add(args[i]);
+            boolean force = false;
+            for (int i = 2; i < args.length; ++i) {
+                String arg = args[i].toLowerCase();
+                if (arg.startsWith("-")) {
+                    if (arg.equals("-f") || arg.equals("--force")) {
+                        force = true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    tags.add(arg);
+                }
+            }
             String user = impostors.get(player.getUniqueId());
             if (user == null) user = player.getName();
             String name = user + "." + args[1];
             Schematic schem = Schematic.copy(a, b, name, tags);
-            schem.save(OrePlugin.getInstance().getDungeonSchematicFile(name));
+            File file = OrePlugin.getInstance().getDungeonSchematicFile(name);
+            if (file.isFile() && !force) {
+                player.sendMessage(ChatColor.RED + "File named '" + name + "' aleady exists. Use '--force' to overwrite.");
+                return true;
+            }
+            schem.save(file);
             player.sendMessage("Saved dungeon schematic '" + name + "' with tags " + tags);
         } else if (firstArg.equals("pastedungeon") && args.length >= 2) {
             String name = args[1];
@@ -186,6 +206,18 @@ public class OreCommand implements CommandExecutor {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+        String term = args.length > 0 ? args[args.length - 1] : "";
+        if (args.length <= 1) {
+            return Arrays.asList("reload", "gen", "debug", "star", "slime", "dungeon", "iam", "copydungeon", "pastedungeon", "mansion").stream().filter(s -> s.startsWith(term)).collect(Collectors.toList());
+        } else if (args.length == 2 && args[0].equals("pastedungeon")) {
+            return OrePlugin.getInstance().getDungeonSchematics().keySet().stream().filter(s -> s.startsWith(term)).collect(Collectors.toList());
+        } else {
+            return null;
+        }
     }
 
     WorldEditPlugin getWorldEdit() {

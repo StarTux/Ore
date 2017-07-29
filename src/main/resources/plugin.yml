@@ -9,7 +9,14 @@ commands:
   ore:
     description: Admin interface
     permission: ore.ore
-    usage: WRONG
+    usage: |-
+      /ore reload
+      /ore gen (any)
+      /ore debug|star|slime|dungeon
+      /ore iam <name>
+      /ore copydungeon <name> (-f|--force) [tags...]
+      /ore pastedungeon <name> [rotation(0..3)]
+      /ore mansion save|paste <name>
 permissions:
   ore.ore:
     description: Use the admin command

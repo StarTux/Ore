@@ -25,11 +25,12 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.Attachable;
 import org.bukkit.material.Directional;
 import org.bukkit.material.MaterialData;
 import org.bukkit.material.Mushroom;
+import org.bukkit.material.Rails;
 import org.bukkit.material.Vine;
+import org.bukkit.material.types.MushroomBlockTexture;
 
 @Value
 public final class Schematic {
@@ -97,20 +98,36 @@ public final class Schematic {
         private final Material material;
         private final int data;
         private final int sortValue;
+        private final boolean physics;
 
         BlockSetter(Block block, Material material, int data) {
             this.block = block;
             this.material = material;
             this.data = data;
             int order = 0;
-            if (material.isSolid()) order -= 10;
-            if (material.isOccluding()) order -= 10;
-            if (material.isTransparent()) order += 5;
+            switch (material) {
+            case REDSTONE_LAMP_ON:
+            case REDSTONE_LAMP_OFF:
+            case REDSTONE_TORCH_ON:
+            case REDSTONE_TORCH_OFF:
+            case RAILS:
+            case ACTIVATOR_RAIL:
+            case DETECTOR_RAIL:
+            case POWERED_RAIL:
+                order = 10;
+                physics = false;
+                break;
+            default:
+                if (material.isSolid()) order -= 10;
+                if (material.isOccluding()) order -= 10;
+                if (material.isTransparent()) order += 5;
+                physics = order < 0;
+            }
             this.sortValue = order;
         }
 
         void update(Random rnd) {
-            block.setTypeIdAndData(material.getId(), (byte)data, this.sortValue < 0);
+            block.setTypeIdAndData(material.getId(), (byte)data, physics);
             if (material == Material.MOB_SPAWNER) {
                 CreatureSpawner state = (CreatureSpawner)block.getState();
                 if (tags.contains("spider")) {
@@ -122,14 +139,18 @@ public final class Schematic {
                 } else if (tags.contains("halloween")) {
                     state.setSpawnedType(EntityType.WITCH);
                 } else if (tags.contains("nether")) {
-                    state.setSpawnedType(EntityType.BLAZE);
+                    switch (rnd.nextInt(4)) {
+                    case 0: case 1: state.setSpawnedType(EntityType.BLAZE); break;
+                    case 2: state.setSpawnedType(EntityType.WITHER_SKELETON); break;
+                    case 3: default: state.setSpawnedType(EntityType.SKELETON);
+                    }
                 } else {
                     switch (rnd.nextInt(5)) {
                     case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
                     case 1: state.setSpawnedType(EntityType.SKELETON); break;
                     case 2: state.setSpawnedType(EntityType.SPIDER); break;
                     case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
-                    case 4: state.setSpawnedType(EntityType.CREEPER); break;
+                    case 4: default: state.setSpawnedType(EntityType.CREEPER);
                     }
                 }
                 state.update();
@@ -190,13 +211,16 @@ public final class Schematic {
                     }
                     if (shouldPaste) {
                         Material material = Material.getMaterial(id);
-                        BlockSetter blockSetter = new BlockSetter(block, material, data.get(i));
-                        blockSetters.add(blockSetter);
+                        if (material != Material.BARRIER) {
+                            BlockSetter blockSetter = new BlockSetter(block, material, data.get(i));
+                            blockSetters.add(blockSetter);
+                        }
                     }
                 }
             }
         }
         Collections.sort(blockSetters);
+        for (BlockSetter blockSetter: blockSetters) blockSetter.block.setType(Material.AIR, false);
         for (BlockSetter blockSetter: blockSetters) {
             blockSetter.update(rnd);
             Material material = blockSetter.getMaterial();
@@ -338,6 +362,7 @@ public final class Schematic {
     static Schematic load(File file) {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
         List<String> tags = config.getStringList("tags");
+        if (tags.isEmpty()) tags = Arrays.asList("default");
         int sizeX = config.getIntegerList("size").get(0);
         int sizeY = config.getIntegerList("size").get(1);
         int sizeZ = config.getIntegerList("size").get(2);
@@ -380,9 +405,109 @@ public final class Schematic {
                     Material mat = Material.getMaterial(aId);
                     switch (mat) {
                     case LADDER:
+                    case END_ROD:
                         Facing facing = Facing.ofBlockData(aData);
                         if (facing != null) {
                             aData = facing.rotate().dataBlock;
+                        }
+                        break;
+                    case WHITE_GLAZED_TERRACOTTA:
+                    case ORANGE_GLAZED_TERRACOTTA:
+                    case MAGENTA_GLAZED_TERRACOTTA:
+                    case LIGHT_BLUE_GLAZED_TERRACOTTA:
+                    case YELLOW_GLAZED_TERRACOTTA:
+                    case LIME_GLAZED_TERRACOTTA:
+                    case PINK_GLAZED_TERRACOTTA:
+                    case GRAY_GLAZED_TERRACOTTA:
+                    case SILVER_GLAZED_TERRACOTTA:
+                    case CYAN_GLAZED_TERRACOTTA:
+                    case PURPLE_GLAZED_TERRACOTTA:
+                    case BLUE_GLAZED_TERRACOTTA:
+                    case BROWN_GLAZED_TERRACOTTA:
+                    case GREEN_GLAZED_TERRACOTTA:
+                    case RED_GLAZED_TERRACOTTA:
+                    case BLACK_GLAZED_TERRACOTTA:
+                        facing = Facing.ofGlazedTerracottsData(aData);
+                        if (facing != null) {
+                            aData = facing.rotate().dataGlazedTerracotta;
+                        }
+                        break;
+                    case VINE:
+                        facing = Facing.ofVineData(aData);
+                        if (facing != null) {
+                            aData = facing.rotate().dataVine;
+                        }
+                        break;
+                    case ACACIA_STAIRS:
+                    case BIRCH_WOOD_STAIRS:
+                    case BRICK_STAIRS:
+                    case COBBLESTONE_STAIRS:
+                    case DARK_OAK_STAIRS:
+                    case JUNGLE_WOOD_STAIRS:
+                    case NETHER_BRICK_STAIRS:
+                    case PURPUR_STAIRS:
+                    case QUARTZ_STAIRS:
+                    case RED_SANDSTONE_STAIRS:
+                    case SANDSTONE_STAIRS:
+                    case SMOOTH_STAIRS:
+                    case SPRUCE_WOOD_STAIRS:
+                    case WOOD_STAIRS:
+                        facing = Facing.ofStairData(aData & 3);
+                        if (facing != null) {
+                            aData = (aData & ~3) | facing.rotate().dataStair;
+                        }
+                        break;
+                    case BED:
+                        facing = Facing.ofBedData(aData & 3);
+                        if (facing != null) {
+                            aData = (aData & ~3) | facing.rotate().dataBed;
+                        }
+                        break;
+                    case LOG: case LOG_2:
+                        switch (aData & 12) {
+                        case 4: aData = (aData & ~12) | 8; break;
+                        case 8: aData = (aData & ~12) | 4; break;
+                        default: break;
+                        }
+                        break;
+                    case RAILS:
+                    case ACTIVATOR_RAIL:
+                    case DETECTOR_RAIL:
+                    case POWERED_RAIL:
+                        switch (aData) {
+                        case 0: aData = 1; break; // north-south
+                        case 1: aData = 0; break; // east-west
+                        case 2: aData = 5; break; // slop east
+                        case 3: aData = 4; break; // slope west
+                        case 4: aData = 2; break; // slope north
+                        case 5: aData = 3; break; // slope south
+                        case 6: aData = 7; break; // south-east
+                        case 7: aData = 8; break; // south-west
+                        case 8: aData = 9; break; // north-west
+                        case 9: aData = 6; break; // north-east
+                        default: break;
+                        }
+                        break;
+                    case ANVIL:
+                        switch (aData & 3) {
+                        case 0: aData = (aData & ~3) | 1; break;
+                        case 1: aData = (aData & ~3) | 2; break;
+                        case 2: aData = (aData & ~3) | 3; break;
+                        case 3: aData = (aData & ~3) | 0; break;
+                        default: break;
+                        }
+                        break;
+                    case LEVER:
+                        switch (aData) {
+                        case 0: aData = 7; break; // bottom east
+                        case 1: aData = 3; break; // east
+                        case 2: aData = 4; break; // west
+                        case 3: aData = 2; break; // south
+                        case 4: aData = 1; break; // north
+                        case 5: aData = 6; break; // top south
+                        case 6: aData = 5; break; // top east
+                        case 7: aData = 0; break; // bottom south
+                        default: break;
                         }
                         break;
                     default:
@@ -402,29 +527,32 @@ public final class Schematic {
                             aData = vine2.getData();
                         } else if (matData instanceof Mushroom) {
                             Mushroom mush = (Mushroom)matData;
-                            if (!mush.isStem()) {
-                                Mushroom mush2 = new Mushroom(mush.getItemType());
-                                for (BlockFace face: mush.getPaintedFaces()) {
-                                    if (needsRotation(face)) {
-                                        mush2.setFacePainted(rotate(face).getOppositeFace(), true);
-                                    } else {
-                                        mush2.setFacePainted(face, true);
-                                    }
-                                }
-                                aData = mush2.getData();
+                            MushroomBlockTexture tex = mush.getBlockTexture();
+                            switch (tex) {
+                            case CAP_NORTH: tex = MushroomBlockTexture.CAP_EAST; break;
+                            case CAP_EAST: tex = MushroomBlockTexture.CAP_SOUTH; break;
+                            case CAP_SOUTH: tex = MushroomBlockTexture.CAP_WEST; break;
+                            case CAP_WEST: tex = MushroomBlockTexture.CAP_NORTH; break;
+                            case CAP_NORTH_EAST: tex = MushroomBlockTexture.CAP_SOUTH_EAST; break;
+                            case CAP_NORTH_WEST: tex = MushroomBlockTexture.CAP_NORTH_EAST; break;
+                            case CAP_SOUTH_EAST: tex = MushroomBlockTexture.CAP_SOUTH_WEST; break;
+                            case CAP_SOUTH_WEST: tex = MushroomBlockTexture.CAP_NORTH_WEST; break;
+                            default: break;
                             }
-                        } else if (matData instanceof Attachable) {
-                            Attachable attach = (Attachable)matData;
-                            if (needsRotation(attach.getAttachedFace())) {
-                                attach.setFacingDirection(rotate(attach.getAttachedFace()));
-                                aData = matData.getData();
-                            }
+                            mush.setBlockTexture(tex);
+                            aData = mush.getData();
                         } else if (matData instanceof Directional) {
                             Directional direct = (Directional)matData;
                             if (needsRotation(direct.getFacing())) {
                                 direct.setFacingDirection(rotate(direct.getFacing()));
                                 aData = matData.getData();
                             }
+                        } else if (matData instanceof Rails) {
+                            Rails rails = (Rails)matData;
+                            BlockFace railsRot = rotate(rails.getDirection());
+                            System.out.println("Rails " + rails.getDirection() + " => " + railsRot);
+                            rails.setDirection(rotate(rails.getDirection()), rails.isOnSlope());
+                            aData = matData.getData();
                         }
                     }
                     // Paste
@@ -442,6 +570,10 @@ public final class Schematic {
         case EAST:
         case SOUTH:
         case WEST:
+        case NORTH_EAST:
+        case SOUTH_EAST:
+        case SOUTH_WEST:
+        case NORTH_WEST:
             return true;
         default:
             return false;
@@ -450,10 +582,14 @@ public final class Schematic {
 
     private static BlockFace rotate(final BlockFace face) {
         switch (face) {
-        case NORTH: return BlockFace.WEST;
-        case EAST:  return BlockFace.NORTH;
-        case SOUTH: return BlockFace.EAST;
-        case WEST:  return BlockFace.SOUTH;
+        case NORTH: return BlockFace.EAST;
+        case EAST:  return BlockFace.SOUTH;
+        case SOUTH: return BlockFace.WEST;
+        case WEST:  return BlockFace.NORTH;
+        case NORTH_EAST: return BlockFace.SOUTH_EAST;
+        case SOUTH_EAST: return BlockFace.SOUTH_WEST;
+        case SOUTH_WEST: return BlockFace.NORTH_WEST;
+        case NORTH_WEST: return BlockFace.NORTH_EAST;
         default: return face;
         }
     }
