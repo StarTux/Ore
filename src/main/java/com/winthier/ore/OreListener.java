@@ -52,6 +52,8 @@ public class OreListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.NORMAL)
     public void onBlockBreak(BlockBreakEvent event) {
         final Block block = event.getBlock();
+        if (block.getY() > 64) return;
+        if (block.getY() + 2 >= block.getWorld().getHighestBlockYAt(block.getX(), block.getZ())) return;
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
         Schematic.PasteResult pasteResult = worldGen.revealDungeon(block);
