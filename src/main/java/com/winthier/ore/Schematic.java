@@ -114,14 +114,20 @@ public final class Schematic {
             case ACTIVATOR_RAIL:
             case DETECTOR_RAIL:
             case POWERED_RAIL:
-                order = 10;
+                order = 512;
                 physics = false;
                 break;
             default:
-                if (material.isSolid()) order -= 10;
-                if (material.isOccluding()) order -= 10;
-                if (material.isTransparent()) order += 5;
-                physics = order < 0;
+                if (material.hasGravity()) {
+                    order = 255;
+                    physics = false;
+                } else {
+                    if (material.isSolid()) order = -128;
+                    if (material.isOccluding()) order -= 128;
+                    if (material.isTransparent()) order += 128;
+                    physics = true;
+                }
+                order += block.getY();
             }
             this.sortValue = order;
         }

@@ -18,33 +18,14 @@ final class ChunkCoordinate {
     }
 
     Block getBlock(World world) {
-        return world.getBlockAt(x * OreChunk.SIZE, y * OreChunk.SIZE, z * OreChunk.SIZE);
+        return world.getBlockAt(x * 16, y * 16, z * 16);
     }
 
     Block getBlockAtY(int y, World world) {
-        return world.getBlockAt(x * OreChunk.SIZE, y, z * OreChunk.SIZE);
-    }
-
-    int distanceSquared(ChunkCoordinate other) {
-        int dx = other.x - x;
-        int dy = other.y - y;
-        int dz = other.z - z;
-        return dx * dx + dy * dy + dz * dz;
-    }
-
-    int axisDistance(ChunkCoordinate other) {
-        return Math.max(
-            Math.abs(x - other.x),
-            Math.max(
-                Math.abs(y - other.y),
-                Math.abs(z - other.z)));
+        return world.getBlockAt(x * 16, y, z * 16);
     }
 
     ChunkCoordinate getRelative(int dx, int dy, int dz) {
         return new ChunkCoordinate(x + dx, y + dy, z + dz);
-    }
-
-    ChunkCoordinate diff(ChunkCoordinate other) {
-        return new ChunkCoordinate(other.x - x, other.y - y, other.z - z);
     }
 }

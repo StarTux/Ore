@@ -67,9 +67,8 @@ public class OreCommand implements TabExecutor {
                                         Integer c = oreCount.get(ore);
                                         if (c == null) c = 0;
                                         oreCount.put(ore, c + 1);
-                                        MaterialData mat = ore.getMaterialData();
-                                        if (mat != null) {
-                                            player.sendBlockChange(loc, mat.getItemType(), mat.getData());
+                                        if (ore.mat != null) {
+                                            player.sendBlockChange(loc, ore.mat.getId(), (byte)ore.data);
                                         }
                                     }
                                 }

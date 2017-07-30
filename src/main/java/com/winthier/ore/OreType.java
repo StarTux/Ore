@@ -19,17 +19,21 @@ public enum OreType {
     DEBUG,
     ;
 
-    public final MaterialData materialData;
+    public final Material mat;
+    public final int data;
 
     OreType() {
-        this.materialData = null;
+        this.mat = null;
+        this.data = 0;
     }
 
-    OreType(Material material) {
-        this.materialData = new MaterialData(material, (byte)0);
+    OreType(Material mat) {
+        this.mat = mat;
+        this.data = 0;
     }
 
-    OreType(Material material, int data) {
-        this.materialData = new MaterialData(material, (byte)data);
+    OreType(Material mat, int data) {
+        this.mat = mat;
+        this.data = data;
     }
 }

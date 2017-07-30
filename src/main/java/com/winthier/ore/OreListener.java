@@ -72,7 +72,6 @@ public class OreListener implements Listener {
         if (placedBlocks.contains(block)) return;
         WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
         if (worldGen == null) return;
-        OreType oreType = worldGen.getOreAt(block);
         worldGen.realize(block);
         for (Rel nbor: NBORS) {
             Block o = block.getRelative(nbor.x, nbor.y, nbor.z);

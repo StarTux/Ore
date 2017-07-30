@@ -9,7 +9,7 @@ import org.bukkit.block.Block;
 
 @Getter
 class OreChunk {
-    final static int SIZE = 16;
+    static final int SIZE = 16;
     final int x, y, z;
     final Biome biome;
     final boolean slime;

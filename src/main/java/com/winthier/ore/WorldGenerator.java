@@ -147,13 +147,9 @@ public class WorldGenerator {
     final LinkedBlockingQueue<OreChunk> queue = new LinkedBlockingQueue<OreChunk>();
 
     // Sync
-    static class PlayerData {
-        final Map<ChunkCoordinate, Long> shownChunks = new HashMap<>();
-    }
     BukkitRunnable syncTask = null;
     final Map<ChunkCoordinate, OreChunk> generatedChunks = new HashMap<>();
     final Set<ChunkCoordinate> scheduledChunks = new HashSet<>();
-    final Map<UUID, PlayerData> playerMap = new HashMap<>();
 
     WorldGenerator(OrePlugin plugin, String worldName) {
         this.plugin = plugin;
@@ -285,7 +281,7 @@ public class WorldGenerator {
                 @Override public void run() {
                     syncDidGenerateChunk(finalChunk);
                 }
-            }.runTaskLater(plugin, 20L);
+            }.runTask(plugin);
         }
     }
 
@@ -293,24 +289,10 @@ public class WorldGenerator {
     void syncDidGenerateChunk(OreChunk chunk) {
         ChunkCoordinate coord = chunk.getCoordinate();
         long now = System.currentTimeMillis();
-        for (Player player: getWorld().getPlayers()) {
-            if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= chunkRevealRadiusSquared) {
-                getPlayerData(player.getUniqueId()).shownChunks.put(coord, now);
-                revealChunkToPlayer(chunk, player);
-            }
-        }
+        revealChunk(chunk);
         generatedChunks.put(coord, chunk);
         scheduledChunks.remove(coord);
         chunk.setUsed();
-    }
-
-    PlayerData getPlayerData(UUID uuid) {
-        PlayerData playerData = playerMap.get(uuid);
-        if (playerData == null) {
-            playerData = new PlayerData();
-            playerMap.put(uuid, playerData);
-        }
-        return playerData;
     }
 
     void syncRun() {
@@ -321,42 +303,22 @@ public class WorldGenerator {
                 it.remove();
             }
         }
-        for (Iterator<UUID> iter = playerMap.keySet().iterator(); iter.hasNext();) {
-            Player player = plugin.getServer().getPlayer(iter.next());
-            if (player == null || player.getWorld() != getWorld()) {
-                iter.remove();
-            }
-        }
         for (Player player: getWorld().getPlayers()) {
             UUID uuid = player.getUniqueId();
-            PlayerData playerData = getPlayerData(uuid);
             ChunkCoordinate playerLocation = ChunkCoordinate.of(player.getLocation());
-            revealPlayerIter(playerData, player, playerLocation);
+            revealPlayerIter(player, playerLocation);
         }
     }
 
-    private void revealPlayerIter(PlayerData playerData, Player player, ChunkCoordinate center) {
+    private void revealPlayerIter(Player player, ChunkCoordinate center) {
         final int R = chunkRevealRadius;
-        long now = System.currentTimeMillis();
-        boolean dutyDone = false;
         for (int y = -R; y <= R; ++y) {
             for (int z = -R; z <= R; ++z) {
                 for (int x = -R; x <= R; ++x) {
                     OreChunk chunk = getOrGenerate(center.getRelative(x, y, z));
-                    if (chunk != null) {
-                        ChunkCoordinate coord = chunk.getCoordinate();
-                        Long shown = playerData.shownChunks.get(coord);
-                        if (shown == null || (!dutyDone && shown + 1000 * 30 < now)) {
-                            playerData.shownChunks.put(coord, now);
-                            revealChunkToPlayer(chunk, player);
-                            dutyDone = true;
-                        }
-                    }
+                    if (chunk != null) chunk.setUsed();
                 }
             }
-        }
-        for (Iterator<ChunkCoordinate> iter = playerData.shownChunks.keySet().iterator(); iter.hasNext(); ) {
-            if (iter.next().axisDistance(center) > R) iter.remove();
         }
     }
 
@@ -376,26 +338,6 @@ public class WorldGenerator {
         }
         if (plugin.isPlayerPlaced(block)) return false;
         return true;
-    }
-
-    void revealChunkToPlayer(OreChunk chunk, Player player) {
-        if (player == null) return;
-        World world = getWorld();
-        if (!player.getWorld().equals(world)) return;
-        for (int y = 0; y < OreChunk.SIZE; ++y) {
-            for (int z = 0; z < OreChunk.SIZE; ++z) {
-                for (int x = 0; x < OreChunk.SIZE; ++x) {
-                    OreType ore = chunk.get(x, y, z);
-                    MaterialData mat = ore.getMaterialData();
-                    if (mat != null) {
-                        Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
-                        if (canReplace(block) && isExposedToAir(block)) {
-                            player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
-                        }
-                    }
-                }
-            }
-        }
     }
 
     OreChunk getOrGenerate(ChunkCoordinate coord) {
@@ -430,6 +372,27 @@ public class WorldGenerator {
         return chunk.at(block);
     }
 
+    void revealChunk(OreChunk chunk) {
+        World world = getWorld();
+        for (int y = 0; y < 16; ++y) {
+            for (int z = 0; z < 16; ++z) {
+                for (int x = 0; x < 16; ++x) {
+                    OreType ore = chunk.get(x, y, z);
+                    if (ore.mat != null) {
+                        Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
+                        if (canReplace(block) && isExposedToAir(block)) {
+                            block.setTypeIdAndData(ore.mat.getId(), (byte)ore.data, false);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void reveal(Block block) {
+        realize(block);
+    }
+
     void realize(Block block) {
         if (!canReplace(block)) return;
         if (plugin.isPlayerPlaced(block)) return;
@@ -437,10 +400,8 @@ public class WorldGenerator {
         OreChunk chunk = getAndGenerate(coord);
         OreType ore = chunk.at(block);
         if (ore == null) return;
-        MaterialData mat = ore.getMaterialData();
-        if (mat != null) {
-            block.setTypeIdAndData(mat.getItemTypeId(), mat.getData(), false);
-        }
+        if (ore.mat == null) return;
+        block.setTypeIdAndData(ore.mat.getId(), (byte)ore.data, false);
     }
 
     Schematic.PasteResult revealDungeon(Block block) {
@@ -588,22 +549,6 @@ public class WorldGenerator {
         return item;
     }
 
-    void reveal(Block block) {
-        ChunkCoordinate coord = ChunkCoordinate.of(block);
-        OreChunk chunk = getOrGenerate(coord);
-        if (chunk == null) return;
-        OreType ore = chunk.at(block);
-        MaterialData mat = ore.materialData;
-        if (mat == null) return;
-        if (!canReplace(block)) return;
-        if (plugin.isPlayerPlaced(block)) return;
-        for (Player player: block.getWorld().getPlayers()) {
-            if (ChunkCoordinate.of(player.getLocation()).distanceSquared(coord) <= chunkRevealRadiusSquared) {
-                player.sendBlockChange(block.getLocation(), mat.getItemType(), mat.getData());
-            }
-        }
-    }
-
     void onSpawnerSpawn(final Block block) {
         if (spawnerLimit <= 0) return;
         Integer val = spawnerSpawns.get(block);
@@ -615,7 +560,7 @@ public class WorldGenerator {
             new BukkitRunnable() {
                 @Override public void run() {
                     block.getWorld().createExplosion(block.getLocation().add(0.5, 0.5, 0.5), 4f, true);
-                    block.setType(Material.AIR);
+                    if (block.getType() == Material.MOB_SPAWNER) block.breakNaturally();
                 }
             }.runTask(plugin);
             spawnerSpawns.remove(block);
