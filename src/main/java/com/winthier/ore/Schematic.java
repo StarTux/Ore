@@ -93,18 +93,18 @@ public final class Schematic {
     }
 
     @Getter
-    final class BlockSetter implements Comparable<BlockSetter> {
+    final class BlockSetter {
         private final Block block;
         private final Material material;
         private final int data;
         private final int sortValue;
         private final boolean physics;
 
-        BlockSetter(Block block, Material material, int data) {
+        BlockSetter(Block block, int x, int y, int z, Material material, int data) {
             this.block = block;
             this.material = material;
             this.data = data;
-            int order = 0;
+            int order;
             switch (material) {
             case REDSTONE_LAMP_ON:
             case REDSTONE_LAMP_OFF:
@@ -114,20 +114,30 @@ public final class Schematic {
             case ACTIVATOR_RAIL:
             case DETECTOR_RAIL:
             case POWERED_RAIL:
-                order = 512;
+                order = 512 + y;
+                physics = false;
+                break;
+            case ACACIA_DOOR:
+            case BIRCH_DOOR:
+            case DARK_OAK_DOOR:
+            case IRON_DOOR_BLOCK:
+            case JUNGLE_DOOR:
+            case SPRUCE_DOOR:
+            case WOOD_DOOR:
+                order = 1024 + y;
                 physics = false;
                 break;
             default:
                 if (material.hasGravity()) {
-                    order = 255;
+                    order = 255 + y;
                     physics = false;
                 } else {
-                    if (material.isSolid()) order = -128;
+                    order = y;
+                    if (material.isSolid()) order -= 128;
                     if (material.isOccluding()) order -= 128;
                     if (material.isTransparent()) order += 128;
                     physics = true;
                 }
-                order += block.getY();
             }
             this.sortValue = order;
         }
@@ -161,11 +171,6 @@ public final class Schematic {
                 }
                 state.update();
             }
-        }
-
-        @Override
-        public int compareTo(BlockSetter other) {
-            return Integer.compare(this.sortValue, other.sortValue);
         }
     }
 
@@ -218,14 +223,14 @@ public final class Schematic {
                     if (shouldPaste) {
                         Material material = Material.getMaterial(id);
                         if (material != Material.BARRIER) {
-                            BlockSetter blockSetter = new BlockSetter(block, material, data.get(i));
+                            BlockSetter blockSetter = new BlockSetter(block, x, y, z, material, data.get(i));
                             blockSetters.add(blockSetter);
                         }
                     }
                 }
             }
         }
-        Collections.sort(blockSetters);
+        Collections.sort(blockSetters, (ia, ib) -> Integer.compare(ia.sortValue, ib.sortValue));
         for (BlockSetter blockSetter: blockSetters) blockSetter.block.setType(Material.AIR, false);
         for (BlockSetter blockSetter: blockSetters) {
             try {
@@ -509,16 +514,32 @@ public final class Schematic {
                         }
                         break;
                     case LEVER:
-                        switch (aData) {
-                        case 0: aData = 7; break; // bottom east
-                        case 1: aData = 3; break; // east
-                        case 2: aData = 4; break; // west
-                        case 3: aData = 2; break; // south
-                        case 4: aData = 1; break; // north
-                        case 5: aData = 6; break; // top south
-                        case 6: aData = 5; break; // top east
-                        case 7: aData = 0; break; // bottom south
+                        switch (aData & 7) {
+                        case 0: aData = (aData & ~7) | 7; break; // bottom east
+                        case 1: aData = (aData & ~7) | 3; break; // east
+                        case 2: aData = (aData & ~7) | 4; break; // west
+                        case 3: aData = (aData & ~7) | 2; break; // south
+                        case 4: aData = (aData & ~7) | 1; break; // north
+                        case 5: aData = (aData & ~7) | 6; break; // top south
+                        case 6: aData = (aData & ~7) | 5; break; // top east
+                        case 7: aData = (aData & ~7) | 0; break; // bottom south
                         default: break;
+                        }
+                        break;
+                    case ACACIA_DOOR:
+                    case BIRCH_DOOR:
+                    case DARK_OAK_DOOR:
+                    case IRON_DOOR_BLOCK:
+                    case JUNGLE_DOOR:
+                    case SPRUCE_DOOR:
+                    case WOOD_DOOR:
+                        if ((aData & 8) == 0) {
+                            switch (aData & 3) {
+                            case 0: aData = (aData & ~3) | 1; break; // east
+                            case 1: aData = (aData & ~3) | 2; break; // south
+                            case 2: aData = (aData & ~3) | 3; break; // west
+                            case 3: default: aData = (aData & ~3) | 0; break; // north
+                            }
                         }
                         break;
                     default:
