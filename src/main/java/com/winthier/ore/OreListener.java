@@ -61,7 +61,7 @@ public class OreListener implements Listener {
             if (worldGen.debug) {
                 OrePlugin.getInstance().getLogger().info("Dungeon " + pasteResult.getSchematic().getName() + "(" + pasteResult.getChests().size() + " chests) revealed for " + event.getPlayer().getName() + " at " + block.getWorld().getName() + " " + pasteResult.getSourceBlock().getX() + " " + pasteResult.getSourceBlock().getY() + " " + pasteResult.getSourceBlock().getZ() + " (" + (pasteResult.getSourceBlock().getX() >> 4) + "," + (pasteResult.getSourceBlock().getZ() >> 4) + ") rot=" + pasteResult.getSchematic().getRotation());
             }
-            DungeonRevealEvent dungeonRevealEvent = new DungeonRevealEvent(event.getPlayer(), pasteResult.getSchematic(), pasteResult.getSourceBlock(), pasteResult.getChests());
+            DungeonRevealEvent dungeonRevealEvent = new DungeonRevealEvent(event.getPlayer(), pasteResult.getSchematic(), pasteResult.getSourceBlock(), pasteResult.getChests(), pasteResult.getSpawners());
             plugin.getServer().getPluginManager().callEvent(dungeonRevealEvent);
         }
     }
@@ -104,14 +104,6 @@ public class OreListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onBlockPlace(BlockPlaceEvent event) {
         placedBlocks.add(event.getBlock());
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
-    public void onSpawnerSpawn(SpawnerSpawnEvent event) {
-        Block block = event.getSpawner().getBlock();
-        WorldGenerator worldGen = plugin.generators.get(block.getWorld().getName());
-        if (worldGen == null) return;
-        worldGen.onSpawnerSpawn(block);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOW)

@@ -3,5 +3,4 @@ worlds:
     Enabled: false
     Dungeons: 50
     Seed: 1234567890
-    SpawnerLimit: 0
     Debug: true

@@ -46,6 +46,7 @@ public final class Schematic {
         Schematic schematic;
         Block sourceBlock;
         List<Chest> chests;
+        List<CreatureSpawner> spawners;
     }
 
     @Value final static class Extra {
@@ -161,12 +162,29 @@ public final class Schematic {
                     case 3: default: state.setSpawnedType(EntityType.SKELETON);
                     }
                 } else {
-                    switch (rnd.nextInt(5)) {
-                    case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
-                    case 1: state.setSpawnedType(EntityType.SKELETON); break;
-                    case 2: state.setSpawnedType(EntityType.SPIDER); break;
-                    case 3: state.setSpawnedType(EntityType.CAVE_SPIDER); break;
-                    case 4: default: state.setSpawnedType(EntityType.CREEPER);
+                    switch (rnd.nextInt(4)) {
+                    case 0:
+                        if (tags.contains("desert")) {
+                            state.setSpawnedType(EntityType.HUSK);
+                        } else {
+                            state.setSpawnedType(EntityType.ZOMBIE);
+                        }
+                        break;
+                    case 1:
+                        if (tags.contains("ice")) {
+                            state.setSpawnedType(EntityType.HUSK);
+                        } else {
+                            state.setSpawnedType(EntityType.SKELETON);
+                        }
+                        break;
+                    case 2:
+                        if (rnd.nextBoolean()) {
+                            state.setSpawnedType(EntityType.SPIDER);
+                        } else {
+                            state.setSpawnedType(EntityType.CAVE_SPIDER);
+                        }
+                        break;
+                    case 3: default: state.setSpawnedType(EntityType.CREEPER);
                     }
                 }
                 state.update();
@@ -184,6 +202,7 @@ public final class Schematic {
         World world = a.getWorld();
         Random rnd = new Random(a.hashCode());
         List<Chest> chests = new ArrayList<>();
+        List<CreatureSpawner> spawners = new ArrayList<>();
         List<BlockSetter> blockSetters = new ArrayList<>();
         int i = -1;
         for (int y = ya; y <= yb; ++y) {
@@ -242,9 +261,11 @@ public final class Schematic {
             Material material = blockSetter.getMaterial();
             if (material == Material.CHEST || material == Material.TRAPPED_CHEST) {
                 chests.add((Chest)blockSetter.getBlock().getState());
+            } else if (material == Material.MOB_SPAWNER) {
+                spawners.add((CreatureSpawner)blockSetter.getBlock().getState());
             }
         }
-        return new PasteResult(this, a, chests);
+        return new PasteResult(this, a, chests, spawners);
     }
 
     @Value class Foo{int x, z;}

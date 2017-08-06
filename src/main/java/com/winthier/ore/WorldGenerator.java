@@ -124,7 +124,6 @@ public class WorldGenerator {
     private boolean shouldStop = false;
     private int dungeonChance = 0;
     private long seed; // Defaults to world seed
-    private int spawnerLimit = 0;
     private List<LootItem> lootItems = null;
     private int lootMedian = 0, lootVariance = 0;
     boolean debug = false;
@@ -133,10 +132,9 @@ public class WorldGenerator {
     void configure(ConfigurationSection config) {
         dungeonChance = config.getInt("Dungeons", dungeonChance);
         seed = config.getLong("Seed", seed);
-        spawnerLimit = config.getInt("SpawnerLimit", spawnerLimit);
         debug = config.getBoolean("Debug", debug);
         Random random = new Random(seed);
-        plugin.getLogger().info("Loaded world " + worldName + " Dungeons=" + dungeonChance + " SpawnerLimit=" + spawnerLimit + " Seed=" + seed + " Debug=" + debug);
+        plugin.getLogger().info("Loaded world " + worldName + " Dungeons=" + dungeonChance + " Seed=" + seed + " Debug=" + debug);
         if (config.getBoolean("Halloween", false)) {
             halloween = new Halloween(this);
             plugin.getLogger().info("Halloween enabled in " + worldName);
@@ -547,26 +545,5 @@ public class WorldGenerator {
             item.setAmount(1 + random.nextInt(item.getAmount() - 1));
         }
         return item;
-    }
-
-    void onSpawnerSpawn(final Block block) {
-        if (spawnerLimit <= 0) return;
-        Integer val = spawnerSpawns.get(block);
-        if (val == null) val = 0;
-        else val += 1;
-        spawnerSpawns.put(block, val);
-        int rnd = random.nextInt(spawnerLimit);
-        if (rnd < val) {
-            new BukkitRunnable() {
-                @Override public void run() {
-                    block.getWorld().createExplosion(block.getLocation().add(0.5, 0.5, 0.5), 4f, true);
-                    if (block.getType() == Material.MOB_SPAWNER) block.breakNaturally();
-                }
-            }.runTask(plugin);
-            spawnerSpawns.remove(block);
-            if (debug) {
-                plugin.getLogger().info(String.format("Exploded spawner in %s at %d %d %d (%d/%d)", block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), val, spawnerLimit));
-            }
-        }
     }
 }
