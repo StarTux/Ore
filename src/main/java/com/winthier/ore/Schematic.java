@@ -175,8 +175,7 @@ public final class Schematic {
                     case 3: default: state.setSpawnedType(EntityType.CREEPER);
                     }
                 }
-                boolean result = state.update();
-                System.out.println("Update creature spawner " + block + " " + state.getSpawnedType() + " => " + result);
+                state.update();
             }
         }
     }
