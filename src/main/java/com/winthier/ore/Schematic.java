@@ -163,20 +163,8 @@ public final class Schematic {
                     }
                 } else {
                     switch (rnd.nextInt(4)) {
-                    case 0:
-                        if (tags.contains("desert")) {
-                            state.setSpawnedType(EntityType.HUSK);
-                        } else {
-                            state.setSpawnedType(EntityType.ZOMBIE);
-                        }
-                        break;
-                    case 1:
-                        if (tags.contains("ice")) {
-                            state.setSpawnedType(EntityType.HUSK);
-                        } else {
-                            state.setSpawnedType(EntityType.SKELETON);
-                        }
-                        break;
+                    case 0: state.setSpawnedType(EntityType.ZOMBIE); break;
+                    case 1: state.setSpawnedType(EntityType.SKELETON); break;
                     case 2:
                         if (rnd.nextBoolean()) {
                             state.setSpawnedType(EntityType.SPIDER);
@@ -187,7 +175,8 @@ public final class Schematic {
                     case 3: default: state.setSpawnedType(EntityType.CREEPER);
                     }
                 }
-                state.update();
+                boolean result = state.update();
+                System.out.println("Update creature spawner " + block + " " + state.getSpawnedType() + " => " + result);
             }
         }
     }
