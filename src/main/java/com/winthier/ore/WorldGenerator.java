@@ -489,7 +489,6 @@ public class WorldGenerator {
                 chests.get(slot.chest).getInventory().setItem(slot.slot, getRandomLootItem());
             }
         }
-        for (Chest chest: chests) chest.update();
     }
 
     private List<LootItem> getLootItems() {
