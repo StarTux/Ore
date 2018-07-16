@@ -21,7 +21,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
-import org.bukkit.material.MaterialData;
+import org.bukkit.metadata.MetadataValue;
 
 public class OreCommand implements TabExecutor {
     private final Map<UUID, String> impostors = new HashMap<>();
@@ -61,14 +61,14 @@ public class OreCommand implements TabExecutor {
                                     Location loc = block.getLocation();
                                     OreType ore = chunk.get(dx, dy, dz);
                                     if (ore == OreType.DEBUG) {
-                                        player.sendBlockChange(loc, Material.STAINED_GLASS, (byte)9);
+                                        player.sendBlockChange(loc, Material.WHITE_STAINED_GLASS.createBlockData());
                                     }
                                     if (ore != OreType.NONE && (anywhere || worldgen.canReplace(block))) {
                                         Integer c = oreCount.get(ore);
                                         if (c == null) c = 0;
                                         oreCount.put(ore, c + 1);
                                         if (ore.mat != null) {
-                                            player.sendBlockChange(loc, ore.mat.getId(), (byte)ore.data);
+                                            player.sendBlockChange(loc, ore.mat.createBlockData());
                                         }
                                     }
                                 }
@@ -84,12 +84,6 @@ public class OreCommand implements TabExecutor {
                 if (c == null) c = 0;
                 double percentage = (double)c / (double)totalCount * 100.0;
                 player.sendMessage(String.format("%d (%.03f%%) %s", c, percentage, ore.name()));
-            }
-        } else if (firstArg.equals("star") && args.length == 1) {
-            Block center = player.getLocation().getBlock();
-            for (OreListener.Rel nbor: OreListener.NBORS) {
-                Block block = center.getRelative(nbor.x, nbor.y, nbor.z);
-                player.sendBlockChange(block.getLocation(), 1, (byte)0);
             }
         } else if (firstArg.equals("slime") && args.length == 1) {
             player.sendMessage("Slime=" + player.getLocation().getBlock().getChunk().isSlimeChunk());
@@ -109,15 +103,22 @@ public class OreCommand implements TabExecutor {
             }
         } else if (firstArg.equals("copydungeon") && args.length >= 2) {
             if (player == null) return false;
-            WorldEditPlugin we = getWorldEdit();
-            if (we == null) return true;
-            Selection sel = we.getSelection(player);
-            if (sel == null) {
+            List<Integer> ls = new ArrayList<>();
+            for (MetadataValue v: player.getMetadata("SelectionA")) {
+                ls.addAll((List<Integer>)v.value());
+                break;
+            }
+            for (MetadataValue v: player.getMetadata("SelectionB")) {
+                ls.addAll((List<Integer>)v.value());
+                break;
+            }
+            if (ls.size() != 6) {
+                player.sendMessage("" + ls.size());
                 player.sendMessage("Make a selection first!");
                 return true;
             }
-            Block a = sel.getMinimumPoint().getBlock();
-            Block b = sel.getMaximumPoint().getBlock();
+            Block a = player.getWorld().getBlockAt(Math.min(ls.get(0), ls.get(3)), Math.min(ls.get(1), ls.get(4)), Math.min(ls.get(2), ls.get(5)));
+            Block b = player.getWorld().getBlockAt(Math.max(ls.get(0), ls.get(3)), Math.max(ls.get(1), ls.get(4)), Math.max(ls.get(2), ls.get(5)));
             List<String> tags = new ArrayList<>();
             boolean force = false;
             for (int i = 2; i < args.length; ++i) {
@@ -145,22 +146,16 @@ public class OreCommand implements TabExecutor {
             player.sendMessage("Saved dungeon schematic '" + name + "' with tags " + tags);
         } else if (firstArg.equals("pastedungeon") && args.length >= 2) {
             String name = args[1];
-            Schematic schem = Schematic.load(OrePlugin.getInstance().getDungeonSchematicFile(name));
-            if (schem == null) {
+            File file = OrePlugin.getInstance().getDungeonSchematicFile(name);
+            if (!file.isFile()) {
                 player.sendMessage("Dungeon schematic not found: " + name);
                 return true;
             }
+            Schematic schem = Schematic.load(file);
             int rotation = 0;
             if (args.length >= 3) rotation = Math.abs(Integer.parseInt(args[2]));
             for (int i = 0; i < rotation; ++i) schem = schem.rotate();
-            WorldEditPlugin we = getWorldEdit();
-            if (we == null) return true;
-            Selection sel = we.getSelection(player);
-            if (sel == null) {
-                player.sendMessage("Make a selection first!");
-                return true;
-            }
-            Block a = sel.getMinimumPoint().getBlock();
+            Block a = player.getLocation().getBlock();
             schem.paste(a, true);
             player.sendMessage("Dungeon " + name + " pasted at WE selection");
         } else if (firstArg.equals("debug") && args.length == 2) {
@@ -175,15 +170,21 @@ public class OreCommand implements TabExecutor {
         } else if (firstArg.equals("mansion")) {
             String subcmd = args[1].toLowerCase();
             String name = args[2];
-            WorldEditPlugin we = getWorldEdit();
-            if (we == null) return true;
-            Selection sel = we.getSelection(player);
-            if (sel == null) {
+            List<Integer> ls = new ArrayList<>();
+            for (MetadataValue v: player.getMetadata("SelectionA")) {
+                ls.addAll((List<Integer>)v.value());
+                break;
+            }
+            for (MetadataValue v: player.getMetadata("SelectionB")) {
+                ls.addAll((List<Integer>)v.value());
+                break;
+            }
+            if (ls.size() != 6) {
                 player.sendMessage("Make a selection first!");
                 return true;
             }
-            Block a = sel.getMinimumPoint().getBlock();
-            Block b = sel.getMaximumPoint().getBlock();
+            Block a = player.getWorld().getBlockAt(Math.min(ls.get(0), ls.get(3)), Math.min(ls.get(1), ls.get(4)), Math.min(ls.get(2), ls.get(5)));
+            Block b = player.getWorld().getBlockAt(Math.max(ls.get(0), ls.get(3)), Math.max(ls.get(1), ls.get(4)), Math.max(ls.get(2), ls.get(5)));
             if (subcmd.equals("save")) {
                 Schematic schematic = Schematic.copy(a, b, name, new ArrayList<String>());
                 File dir = new File(OrePlugin.getInstance().getDataFolder(), "mansions");
@@ -191,13 +192,6 @@ public class OreCommand implements TabExecutor {
                 File file = new File(dir, name + ".yml");
                 schematic.save(file);
                 player.sendMessage("Mansion saved as " + file.getName());
-            } else if (subcmd.equals("paste")) {
-                File dir = new File(OrePlugin.getInstance().getDataFolder(), "mansions");
-                dir.mkdirs();
-                File file = new File(dir, name + ".yml");
-                Schematic schematic = Schematic.load(file);
-                schematic.pasteHalloween(null, a);
-                player.sendMessage("Mansion pasted");
             } else {
                 return false;
             }
@@ -217,9 +211,5 @@ public class OreCommand implements TabExecutor {
         } else {
             return null;
         }
-    }
-
-    WorldEditPlugin getWorldEdit() {
-        return (WorldEditPlugin)Bukkit.getServer().getPluginManager().getPlugin("WorldEdit");
     }
 }

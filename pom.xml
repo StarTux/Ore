@@ -33,7 +33,7 @@
     <dependency>
       <groupId>org.spigotmc</groupId>
       <artifactId>spigot-api</artifactId>
-      <version>1.12.1-R0.1-SNAPSHOT</version>
+      <version>1.13-pre7-R0.1-SNAPSHOT</version>
     </dependency>
     <!-- Lombok -->
     <dependency>
@@ -53,7 +53,7 @@
     <dependency>
       <groupId>com.winthier.custom</groupId>
       <artifactId>custom</artifactId>
-      <version>0.1</version>
+      <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <!-- WorldEdit -->

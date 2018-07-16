@@ -2,7 +2,6 @@ package com.winthier.ore;
 
 import lombok.Getter;
 import org.bukkit.Material;
-import org.bukkit.material.MaterialData;
 
 @Getter
 public enum OreType {
@@ -20,20 +19,12 @@ public enum OreType {
     ;
 
     public final Material mat;
-    public final int data;
 
     OreType() {
         this.mat = null;
-        this.data = 0;
     }
 
     OreType(Material mat) {
         this.mat = mat;
-        this.data = 0;
-    }
-
-    OreType(Material mat, int data) {
-        this.mat = mat;
-        this.data = data;
     }
 }

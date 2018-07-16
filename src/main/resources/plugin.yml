@@ -2,6 +2,7 @@ name: Ore
 description: Custom, dynamic ore generation
 author: StarTux
 version: 0.1
+api-version: 1.13
 main: com.winthier.ore.OrePlugin
 depend: [ Custom ]
 softdepend: [ Exploits ]

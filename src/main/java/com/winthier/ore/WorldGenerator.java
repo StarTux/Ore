@@ -39,7 +39,6 @@ import org.bukkit.entity.PolarBear;
 import org.bukkit.entity.Stray;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.MaterialData;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class WorldGenerator {
@@ -52,62 +51,70 @@ public class WorldGenerator {
     final long worldSeed;
     final Set<ChunkCoordinate> revealedDungeons = new HashSet<>();
     final Map<Block, Integer> spawnerSpawns = new HashMap<>();
-    Halloween halloween = null;
 
     static public enum Special {
         NONE, MESA, OCEAN, DESERT, JUNGLE, ICE, MUSHROOM, FOREST, SAVANNA, PLAINS;
         static Special of(Biome biome) {
             switch (biome) {
-            case MESA:
-            case MESA_CLEAR_ROCK:
-            case MESA_ROCK:
-            case MUTATED_MESA:
-            case MUTATED_MESA_CLEAR_ROCK:
-            case MUTATED_MESA_ROCK:
+            case BADLANDS:
+            case WOODED_BADLANDS_PLATEAU:
+            case BADLANDS_PLATEAU:
+            case ERODED_BADLANDS:
+            case MODIFIED_WOODED_BADLANDS_PLATEAU:
+            case MODIFIED_BADLANDS_PLATEAU:
                 return MESA;
             case DESERT:
             case DESERT_HILLS:
-            case MUTATED_DESERT:
+            case DESERT_LAKES:
                 return DESERT;
-            case DEEP_OCEAN:
-            case FROZEN_OCEAN:
             case OCEAN:
+            case FROZEN_OCEAN:
+            case DEEP_OCEAN:
+            case WARM_OCEAN:
+            case LUKEWARM_OCEAN:
+            case COLD_OCEAN:
+            case DEEP_WARM_OCEAN:
+            case DEEP_LUKEWARM_OCEAN:
+            case DEEP_COLD_OCEAN:
+            case DEEP_FROZEN_OCEAN:
                 return OCEAN;
             case JUNGLE:
-            case JUNGLE_EDGE:
             case JUNGLE_HILLS:
-            case MUTATED_JUNGLE:
-            case MUTATED_JUNGLE_EDGE:
+            case JUNGLE_EDGE:
+            case MODIFIED_JUNGLE:
+            case MODIFIED_JUNGLE_EDGE:
                 return JUNGLE;
-            case COLD_BEACH:
+            case ICE_SPIKES:
             case FROZEN_RIVER:
-            case ICE_FLATS:
-            case ICE_MOUNTAINS:
-            case MUTATED_ICE_FLATS:
-            case MUTATED_TAIGA_COLD:
-            case TAIGA_COLD:
-            case TAIGA_COLD_HILLS:
+            case TAIGA:
+            case TAIGA_HILLS:
+            case SNOWY_TAIGA:
+            case SNOWY_TAIGA_HILLS:
+            case GIANT_TREE_TAIGA:
+            case GIANT_TREE_TAIGA_HILLS:
+            case TAIGA_MOUNTAINS:
+            case SNOWY_TAIGA_MOUNTAINS:
+            case GIANT_SPRUCE_TAIGA:
+            case GIANT_SPRUCE_TAIGA_HILLS:
                 return ICE;
-            case MUSHROOM_ISLAND:
-            case MUSHROOM_ISLAND_SHORE:
+            case MUSHROOM_FIELDS:
+            case MUSHROOM_FIELD_SHORE:
                 return MUSHROOM;
+            case FOREST:
             case BIRCH_FOREST:
             case BIRCH_FOREST_HILLS:
-            case FOREST:
-            case FOREST_HILLS:
-            case MUTATED_BIRCH_FOREST:
-            case MUTATED_BIRCH_FOREST_HILLS:
-            case MUTATED_FOREST:
-            case MUTATED_ROOFED_FOREST:
-            case ROOFED_FOREST:
+            case DARK_FOREST:
+            case FLOWER_FOREST:
+            case TALL_BIRCH_FOREST:
+            case DARK_FOREST_HILLS:
                 return FOREST;
             case SAVANNA:
-            case MUTATED_SAVANNA:
-            case SAVANNA_ROCK:
-            case MUTATED_SAVANNA_ROCK:
+            case SAVANNA_PLATEAU:
+            case SHATTERED_SAVANNA:
+            case SHATTERED_SAVANNA_PLATEAU:
                 return SAVANNA;
             case PLAINS:
-            case MUTATED_PLAINS:
+            case SUNFLOWER_PLAINS:
                 return PLAINS;
             default:
                 return NONE;
@@ -135,10 +142,6 @@ public class WorldGenerator {
         debug = config.getBoolean("Debug", debug);
         Random random = new Random(seed);
         plugin.getLogger().info("Loaded world " + worldName + " Dungeons=" + dungeonChance + " Seed=" + seed + " Debug=" + debug);
-        if (config.getBoolean("Halloween", false)) {
-            halloween = new Halloween(this);
-            plugin.getLogger().info("Halloween enabled in " + worldName);
-        }
     }
 
     // Async
@@ -262,7 +265,6 @@ public class WorldGenerator {
         try {
             syncTask.cancel();
         } catch (IllegalStateException ise) {}
-        if (halloween != null) halloween.cleanup();
     }
 
     void asyncRun() {
@@ -328,12 +330,7 @@ public class WorldGenerator {
     }
 
     boolean canReplace(Block block) {
-        switch (block.getType()) {
-        case STONE:
-            if (block.getData() > 0) return false;
-            break;
-        default: return false;
-        }
+        if (block.getType() != Material.STONE) return false;
         if (plugin.isPlayerPlaced(block)) return false;
         return true;
     }
@@ -379,7 +376,7 @@ public class WorldGenerator {
                     if (ore.mat != null) {
                         Block block = world.getBlockAt(chunk.getBlockX() + x, chunk.getBlockY() + y, chunk.getBlockZ() + z);
                         if (canReplace(block) && isExposedToAir(block)) {
-                            block.setTypeIdAndData(ore.mat.getId(), (byte)ore.data, false);
+                            block.setType(ore.mat, false);
                         }
                     }
                 }
@@ -399,7 +396,7 @@ public class WorldGenerator {
         OreType ore = chunk.at(block);
         if (ore == null) return;
         if (ore.mat == null) return;
-        block.setTypeIdAndData(ore.mat.getId(), (byte)ore.data, false);
+        block.setType(ore.mat, false);
     }
 
     Schematic.PasteResult revealDungeon(Block block) {
@@ -457,8 +454,9 @@ public class WorldGenerator {
         DungeonChunk dc = new DungeonChunk(chunkCoord.getX(), chunkCoord.getZ(), seed);
         Random rnd = new Random(dc.hashCode());
         Schematic schem = schematics.get(rnd.nextInt(schematics.size()));
-        int rotation = rnd.nextInt(4);
-        for (int i = 0; i < rotation; ++i) schem = schem.rotate();
+        // TODO fix rotation method and uncomment this.
+        // int rotation = rnd.nextInt(4);
+        // for (int i = 0; i < rotation; ++i) schem = schem.rotate();
         Block revealBlock = chunkCoord.getBlockAtY(0, getWorld()).getRelative(dungeonOffset.x, dungeonOffset.y, dungeonOffset.z);
         Schematic.PasteResult pasteResult = schem.paste(revealBlock);
         spawnLoot(pasteResult.getChests());
