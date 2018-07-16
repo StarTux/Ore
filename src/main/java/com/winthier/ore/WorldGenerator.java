@@ -169,7 +169,6 @@ public class WorldGenerator {
      * positive number for the y level of the dungeon.
      */
     Vec3 getDungeonOffset(OreChunk chunk, Special special) {
-        if (special == Special.OCEAN) return null;
         Random rnd = new Random(new DungeonChunk(chunk.x, chunk.z, seed).hashCode());
         if (dungeonChance < 100 && rnd.nextInt(100) >= dungeonChance) return null;
         return new Vec3(rnd.nextInt(16) - 8,
