@@ -99,6 +99,33 @@ public class OreCommand implements TabExecutor {
         //         String oldname = impostors.remove(player.getUniqueId());
         //         player.sendMessage("No longer saving dungeons under the name " + oldname);
         //     }
+        } else if (firstArg.equals("list") && (args.length == 1 || args.length == 2)) {
+            File file = new File(OrePlugin.getInstance().getDataFolder(), "dungeons");
+            String term = null;
+            if (args.length >= 2) term = args[1].toLowerCase();
+            List<String> results = new ArrayList<>();
+            for (String str: file.list()) {
+                if (str.endsWith(".yml") && (term == null || str.toLowerCase().contains(term))) {
+                    results.add(str.substring(0, str.length() - 4));
+                }
+            }
+            StringBuilder sb = new StringBuilder("Dungeons (").append(results.size()).append(")");
+            for (String result: results) sb.append(" ").append(result);
+            player.sendMessage(sb.toString());
+        } else if (firstArg.equals("info") && args.length == 2) {
+            String name = args[1];
+            File file = OrePlugin.getInstance().getDungeonSchematicFile(name);
+            if (!file.isFile()) {
+                player.sendMessage("Dungeon schematic not found: " + name);
+                return true;
+            }
+            Schematic schem = Schematic.load(file);
+            player.sendMessage("Dungeon Info ====");
+            player.sendMessage("Name `" + schem.getName() + "`");
+            player.sendMessage("Tags " + schem.getTags() + "");
+            player.sendMessage("Size " + schem.getSizeX() + "x" + schem.getSizeY() + "x" + schem.getSizeZ());
+            player.sendMessage("Blocks " + schem.getBlocks().size());
+            player.sendMessage("");
         } else if (firstArg.equals("copy") && args.length >= 2) {
             if (player == null) return false;
             List<Integer> ls = new ArrayList<>();
@@ -140,7 +167,7 @@ public class OreCommand implements TabExecutor {
             }
             schem.save(file);
             player.sendMessage("Saved dungeon schematic '" + name + "' with tags " + tags);
-        } else if (firstArg.equals("pastedungeon") && args.length >= 2) {
+        } else if (firstArg.equals("paste") && args.length >= 2) {
             String name = args[1];
             File file = OrePlugin.getInstance().getDungeonSchematicFile(name);
             if (!file.isFile()) {
@@ -201,7 +228,7 @@ public class OreCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         String term = args.length > 0 ? args[args.length - 1] : "";
         if (args.length <= 1) {
-            return Arrays.asList("reload", "gen", "debug", "star", "slime", "dungeon", "iam", "copydungeon", "pastedungeon", "mansion").stream().filter(s -> s.startsWith(term)).collect(Collectors.toList());
+            return Arrays.asList("reload", "gen", "debug", "star", "slime", "dungeon", "copy", "paste", "list", "info", "mansion").stream().filter(s -> s.startsWith(term)).collect(Collectors.toList());
         } else if (args.length == 2 && args[0].equals("pastedungeon")) {
             return OrePlugin.getInstance().getDungeonSchematics().keySet().stream().filter(s -> s.startsWith(term)).collect(Collectors.toList());
         } else {
