@@ -136,7 +136,6 @@ public final class Schematic {
                     orderv = y;
                     if (material.isSolid()) orderv -= 128;
                     if (material.isOccluding()) orderv -= 128;
-                    if (material.isTransparent()) orderv += 128;
                     physicsv = true;
                 }
             }
@@ -291,6 +290,7 @@ public final class Schematic {
         }
     }
 
+    @SuppressWarnings("unchecked")
     static Schematic load(File file) {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
         List<String> tags = config.getStringList("tags");

@@ -4,9 +4,9 @@
   <groupId>com.winthier.ore</groupId>
   <artifactId>ore</artifactId>
   <packaging>jar</packaging>
-  <version>0.1</version>
+  <version>0.1-SNAPSHOT</version>
   <name>Ore</name>
-  <url>http://www.winthier.com</url>
+  <url>https://cavetale.com</url>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -14,7 +14,7 @@
     <!-- Spigot Repo -->
     <repository>
       <id>spigot-repo</id>
-      <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
+      <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
     </repository>
     <!-- WorldEdit Repo -->
     <repository>
@@ -46,7 +46,7 @@
     <dependency>
       <groupId>com.winthier.exploits</groupId>
       <artifactId>exploits</artifactId>
-      <version>0.1</version>
+      <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <!-- Custom -->

@@ -24,7 +24,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.metadata.MetadataValue;
 
 public class OreCommand implements TabExecutor {
-    @Override
+    @Override @SuppressWarnings("unchecked")
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         Player player = sender instanceof Player ? (Player)sender : null;
         if (args.length == 0) return false;
