@@ -217,7 +217,7 @@ public final class Schematic {
                     } else if (!OrePlugin.getInstance().isPlayerPlaced(block)) {
                         Material mat = block.getType();
                         switch (mat) {
-                        case SMOOTH_STONE:
+                        case STONE:
                         case COBBLESTONE:
                         case MOSSY_COBBLESTONE:
                         case STONE_BRICKS:
